@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .prose-invert {
+    color: #e2e8f0;
+  }
+  
+  .prose-invert h1,
+  .prose-invert h2,
+  .prose-invert h3,
+  .prose-invert h4,
+  .prose-invert h5,
+  .prose-invert h6 {
+    color: #f8fafc;
+    font-weight: 600;
+  }
+  
+  .prose-invert strong {
+    color: #f8fafc;
+  }
+  
+  .prose-invert code {
+    color: #60a5fa;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+  }
+  
+  .prose-invert pre {
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .prose-invert blockquote {
+    border-left: 4px solid #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1);
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+}
