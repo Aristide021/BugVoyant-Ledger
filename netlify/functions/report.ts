@@ -7,9 +7,11 @@ import algosdk from 'algosdk';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const SENTRY_WEBHOOK_SECRET = process.env.SENTRY_WEBHOOK_SECRET!;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY!;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ELEVEN_API_KEY = process.env.ELEVEN_API_KEY!;
-const ALGORAND_TOKEN = process.env.ALGORAND_TOKEN!;
+const ALGORAND_TOKEN = process.env.ALGORAND_TOKEN || '';
 const ALGORAND_SERVER = process.env.ALGORAND_SERVER || 'https://testnet-api.algonode.cloud';
 const ALGORAND_MNEMONIC = process.env.ALGORAND_MNEMONIC!;
 
@@ -58,6 +60,108 @@ interface Project {
   slack_webhook_url: string;
   user_id: string;
 }
+
+interface AIProvider {
+  name: string;
+  cost: number; // Cost per report for tracking
+  execute: (prompt: string, context: any) => Promise<string>;
+}
+
+// AI Provider implementations
+const aiProviders: AIProvider[] = [
+  {
+    name: 'Google Gemini 2.5 Flash',
+    cost: 0.0014,
+    execute: async (prompt: string, context: any): Promise<string> => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GOOGLE_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `${prompt}\n\nIncident Data:\n${JSON.stringify(context, null, 2)}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.3,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Gemini API error: ${response.status} - ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Failed to generate summary with Gemini';
+    }
+  },
+  {
+    name: 'OpenAI GPT-4o-mini',
+    cost: 0.0021,
+    execute: async (prompt: string, context: any): Promise<string> => {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: prompt },
+            { role: 'user', content: JSON.stringify(context, null, 2) },
+          ],
+          max_tokens: 2000,
+          temperature: 0.3,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} - ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.message?.content || 'Failed to generate summary with OpenAI';
+    }
+  },
+  {
+    name: 'Anthropic Claude 3 Haiku',
+    cost: 0.00375,
+    execute: async (prompt: string, context: any): Promise<string> => {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ANTHROPIC_API_KEY}`,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 2000,
+          temperature: 0.3,
+          system: prompt,
+          messages: [{
+            role: 'user',
+            content: JSON.stringify(context, null, 2)
+          }]
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Anthropic API error: ${response.status} - ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      return data.content?.[0]?.text || 'Failed to generate summary with Claude';
+    }
+  }
+];
 
 const handler: Handler = async (event: HandlerEvent) => {
   // Only handle POST requests
@@ -165,13 +269,16 @@ async function processIncident(project: Project, issue: any, reportId: number) {
   let markdown = '';
   let algorandTx: string | null = null;
   let audioUrl: string | null = null;
+  let usedProvider = '';
 
   try {
     // Step 1: Fetch detailed issue information from Sentry
     const issueDetails = await fetchSentryIssue(project, issue.id);
     
-    // Step 2: Generate markdown summary using OpenAI
-    markdown = await generateMarkdownSummary(issueDetails);
+    // Step 2: Generate markdown summary using AI with fallback strategy
+    const aiResult = await generateMarkdownSummaryWithFallback(issueDetails);
+    markdown = aiResult.content;
+    usedProvider = aiResult.provider;
     
     // Step 3: Hash the markdown and anchor on Algorand
     try {
@@ -203,7 +310,7 @@ async function processIncident(project: Project, issue: any, reportId: number) {
       .eq('id', reportId);
     
     // Step 6: Send Slack notification
-    await sendSlackNotification(project, issue, markdown, algorandTx, audioUrl);
+    await sendSlackNotification(project, issue, markdown, algorandTx, audioUrl, usedProvider);
     
   } catch (error) {
     console.error('Processing failed:', error);
@@ -217,6 +324,47 @@ async function processIncident(project: Project, issue: any, reportId: number) {
       })
       .eq('id', reportId);
   }
+}
+
+async function generateMarkdownSummaryWithFallback(issueDetails: any): Promise<{ content: string; provider: string }> {
+  const systemPrompt = `You are a senior SRE expert. Transform the following Sentry incident data into a polished post-mortem report in Markdown format. Include:
+
+1. Executive Summary
+2. Timeline of Events
+3. Root Cause Analysis
+4. Impact Assessment
+5. Resolution Steps
+6. Action Items for Prevention
+
+Keep it professional, concise, and actionable.`;
+
+  // Try each AI provider in order until one succeeds
+  for (let i = 0; i < aiProviders.length; i++) {
+    const provider = aiProviders[i];
+    
+    try {
+      console.log(`Attempting to generate summary with ${provider.name} (estimated cost: $${provider.cost})`);
+      
+      const content = await provider.execute(systemPrompt, issueDetails);
+      
+      console.log(`✅ Successfully generated summary with ${provider.name}`);
+      return { content, provider: provider.name };
+      
+    } catch (error) {
+      console.error(`❌ ${provider.name} failed:`, error);
+      
+      // If this is the last provider, throw the error
+      if (i === aiProviders.length - 1) {
+        throw new Error(`All AI providers failed. Last error from ${provider.name}: ${error}`);
+      }
+      
+      // Otherwise, continue to the next provider
+      console.log(`🔄 Falling back to next provider...`);
+    }
+  }
+  
+  // This should never be reached due to the throw above, but TypeScript needs it
+  throw new Error('Unexpected error in AI fallback logic');
 }
 
 async function fetchSentryIssue(project: Project, issueId: string) {
@@ -235,43 +383,6 @@ async function fetchSentryIssue(project: Project, issueId: string) {
   }
 
   return response.json();
-}
-
-async function generateMarkdownSummary(issueDetails: any): Promise<string> {
-  const systemPrompt = `You are a senior SRE expert. Transform the following Sentry incident data into a polished post-mortem report in Markdown format. Include:
-
-1. Executive Summary
-2. Timeline of Events
-3. Root Cause Analysis
-4. Impact Assessment
-5. Resolution Steps
-6. Action Items for Prevention
-
-Keep it professional, concise, and actionable.`;
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: JSON.stringify(issueDetails, null, 2) },
-      ],
-      max_tokens: 2000,
-      temperature: 0.3,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || 'Failed to generate summary';
 }
 
 async function anchorOnAlgorand(markdown: string): Promise<string> {
@@ -307,6 +418,7 @@ async function anchorOnAlgorand(markdown: string): Promise<string> {
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, txId, 4);
     
+    console.log(`✅ Successfully anchored hash on Algorand: ${txId}`);
     return txId;
   } catch (error) {
     console.error('Algorand transaction failed:', error);
@@ -370,6 +482,7 @@ async function generateAudioSummary(markdown: string, reportId: number): Promise
       .from('audio-summaries')
       .getPublicUrl(fileName);
 
+    console.log(`✅ Successfully generated and stored audio summary: ${urlData.publicUrl}`);
     return urlData.publicUrl;
   } catch (error) {
     console.error('Audio generation failed:', error);
@@ -382,7 +495,8 @@ async function sendSlackNotification(
   issue: any,
   markdown: string,
   algorandTx: string | null,
-  audioUrl: string | null
+  audioUrl: string | null,
+  usedProvider: string
 ) {
   const blocks = [
     {
@@ -410,6 +524,15 @@ async function sendSlackNotification(
         {
           type: 'mrkdwn',
           text: `*Status:* ${issue.status}`,
+        },
+      ],
+    },
+    {
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `🤖 Generated by: ${usedProvider}`,
         },
       ],
     },
