@@ -1,0 +1,63 @@
+{
+  "action": "created",
+  "data": {
+    "issue": {
+      "id": "4505072710",
+      "title": "TypeError: Cannot read property 'map' of undefined",
+      "culprit": "src/components/Dashboard.tsx in renderReports",
+      "level": "error",
+      "status": "unresolved",
+      "statusDetails": {},
+      "type": "error",
+      "metadata": {
+        "type": "TypeError",
+        "value": "Cannot read property 'map' of undefined",
+        "filename": "src/components/Dashboard.tsx"
+      },
+      "numComments": 0,
+      "assignedTo": null,
+      "permalink": "https://sentry.io/organizations/my-org/issues/4505072710/",
+      "firstSeen": "2025-01-15T10:30:00.000Z",
+      "lastSeen": "2025-01-15T10:30:00.000Z",
+      "count": "1",
+      "userCount": 1,
+      "project": {
+        "id": "6734829",
+        "name": "BugVoyant Production",
+        "slug": "bugvoyant-production"
+      },
+      "tags": [
+        {
+          "key": "browser",
+          "value": "Chrome 120.0.0"
+        },
+        {
+          "key": "environment",
+          "value": "production"
+        },
+        {
+          "key": "release",
+          "value": "v1.2.3"
+        }
+      ],
+      "context": {
+        "browser": {
+          "name": "Chrome",
+          "version": "120.0.0"
+        },
+        "os": {
+          "name": "Mac OS X",
+          "version": "14.2.1"
+        },
+        "user": {
+          "id": "user_12345",
+          "email": "user@example.com"
+        }
+      }
+    }
+  },
+  "installation": {
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  },
+  "timestamp": "2025-01-15T10:30:00.000Z"
+}
