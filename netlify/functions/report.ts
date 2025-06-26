@@ -274,26 +274,88 @@ const handler: Handler = async (event: HandlerEvent) => {
     // For now, use the first project (in production, you'd match by org slug)
     const project: Project = projects[0];
 
-    // Create initial report record
+    // Check if report already exists for this issue (idempotency check)
+    const { data: existingReport, error: existingError } = await supabase
+      .from('reports')
+      .select('id, status')
+      .eq('project_id', project.id)
+      .eq('sentry_issue_id', issue.id)
+      .single();
+
+    if (existingError && existingError.code !== 'PGRST116') {
+      // PGRST116 is "not found" error, which is expected for new issues
+      console.error('Error checking existing report:', existingError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Database error checking existing report' }),
+      };
+    }
+
+    if (existingReport) {
+      console.log(`Report already exists for issue ${issue.id}, returning existing report ID: ${existingReport.id}`);
+      
+      // If the existing report failed or is stuck in processing, restart it
+      if (existingReport.status === 'failed' || existingReport.status === 'processing') {
+        console.log(`Restarting processing for existing report ${existingReport.id} with status: ${existingReport.status}`);
+        
+        // Update status back to processing and restart
+        const { error: updateError } = await supabase
+          .from('reports')
+          .update({
+            status: 'processing',
+            markdown: 'Processing...',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingReport.id);
+
+        if (updateError) {
+          console.error('Error updating existing report:', updateError);
+        } else {
+          // Process the incident asynchronously
+          processIncident(project, issue, existingReport.id).catch(error => {
+            console.error('Async processing error:', error);
+          });
+        }
+      }
+      
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          message: 'Report already exists for this issue',
+          reportId: existingReport.id,
+          status: existingReport.status
+        }),
+      };
+    }
+
+    // Create new report record using upsert for additional safety
     const { data: report, error: insertError } = await supabase
       .from('reports')
-      .insert({
+      .upsert({
         project_id: project.id,
         sentry_issue_id: issue.id,
         title: issue.title,
         markdown: 'Processing...',
         status: 'processing',
+      }, { 
+        onConflict: 'project_id,sentry_issue_id',
+        ignoreDuplicates: false 
       })
       .select()
       .single();
 
     if (insertError || !report) {
-      console.error('Failed to create report:', insertError);
+      console.error('Failed to create/update report:', insertError);
       return {
         statusCode: 500,
         body: JSON.stringify({ error: 'Failed to create report' }),
       };
     }
+
+    console.log(`Created/updated report ${report.id} for issue ${issue.id}`);
 
     // Process the incident asynchronously
     processIncident(project, issue, report.id).catch(error => {
@@ -331,7 +393,7 @@ async function processIncident(project: Project, issue: any, reportId: number) {
   let usedProvider = '';
 
   try {
-    console.log(`Processing incident ${issue.id} for project ${project.id}`);
+    console.log(`Processing incident ${issue.id} for project ${project.id}, report ${reportId}`);
 
     // Step 1: Fetch detailed issue information from Sentry (mock for now)
     const issueDetails = {
@@ -346,23 +408,23 @@ async function processIncident(project: Project, issue: any, reportId: number) {
     markdown = aiResult.content;
     usedProvider = aiResult.provider;
     
-    console.log(`Generated summary using ${usedProvider}`);
+    console.log(`Generated summary using ${usedProvider} for report ${reportId}`);
     
     // Step 3: Hash the markdown and anchor on Algorand
     try {
       algorandTx = await anchorOnAlgorand(markdown);
-      console.log(`Anchored on Algorand: ${algorandTx}`);
+      console.log(`Anchored on Algorand: ${algorandTx} for report ${reportId}`);
     } catch (error) {
-      console.error('Algorand anchoring failed:', error);
+      console.error('Algorand anchoring failed for report', reportId, ':', error);
       status = 'pending_hash';
     }
     
     // Step 4: Generate audio summary
     try {
       audioUrl = await generateAudioSummary(markdown, reportId);
-      console.log(`Generated audio summary: ${audioUrl}`);
+      console.log(`Generated audio summary: ${audioUrl} for report ${reportId}`);
     } catch (error) {
-      console.error('Audio generation failed:', error);
+      console.error('Audio generation failed for report', reportId, ':', error);
       status = status === 'pending_hash' ? 'partial' : 'text_only';
     }
     
@@ -376,25 +438,26 @@ async function processIncident(project: Project, issue: any, reportId: number) {
         algorand_tx: algorandTx,
         audio_url: audioUrl,
         status: finalStatus,
+        updated_at: new Date().toISOString()
       })
       .eq('id', reportId);
 
     if (updateError) {
-      console.error('Error updating report:', updateError);
+      console.error('Error updating report', reportId, ':', updateError);
     }
     
     // Step 6: Send Slack notification (mock for now)
     try {
       await sendSlackNotification(project, issue, markdown, algorandTx, audioUrl, usedProvider);
-      console.log('Slack notification sent');
+      console.log('Slack notification sent for report', reportId);
     } catch (error) {
-      console.error('Slack notification failed:', error);
+      console.error('Slack notification failed for report', reportId, ':', error);
     }
     
-    console.log(`Successfully processed incident ${issue.id} with status ${finalStatus}`);
+    console.log(`Successfully processed incident ${issue.id} with status ${finalStatus} for report ${reportId}`);
     
   } catch (error) {
-    console.error('Processing failed:', error);
+    console.error('Processing failed for report', reportId, ':', error);
     
     // Update report with error status
     await supabase
@@ -402,6 +465,7 @@ async function processIncident(project: Project, issue: any, reportId: number) {
       .update({
         markdown: markdown || `# Processing Failed\n\nAn error occurred while processing this incident:\n\n${error}`,
         status: 'failed',
+        updated_at: new Date().toISOString()
       })
       .eq('id', reportId);
   }
