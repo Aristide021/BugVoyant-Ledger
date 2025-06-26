@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { toast } from './Toast';
 
 interface AuthFormProps {
   onBack?: () => void;
@@ -13,7 +14,8 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signUp, signIn } = useAuth();
+  const [walletConnecting, setWalletConnecting] = useState(false);
+  const { signUp, signIn, signInWithOAuth, signInWithWallet } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,11 +29,56 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
       if (error) {
         setError(error.message);
+        toast.error('Authentication failed', error.message);
+      } else {
+        toast.success('Welcome to BugVoyant-Ledger!', 'You have been successfully authenticated.');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      const errorMessage = 'An unexpected error occurred';
+      setError(errorMessage);
+      toast.error('Authentication error', errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await signInWithOAuth(provider);
+      if (error) {
+        setError(error.message);
+        toast.error(`${provider} sign-in failed`, error.message);
+      }
+    } catch (err) {
+      const errorMessage = `Failed to sign in with ${provider}`;
+      setError(errorMessage);
+      toast.error('OAuth error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWalletSignIn = async () => {
+    setWalletConnecting(true);
+    setError(null);
+
+    try {
+      const { error } = await signInWithWallet();
+      if (error) {
+        setError(error.message);
+        toast.error('Wallet sign-in failed', error.message);
+      } else {
+        toast.success('Wallet connected!', 'You have been authenticated with your Algorand wallet.');
+      }
+    } catch (err) {
+      const errorMessage = 'Failed to connect wallet';
+      setError(errorMessage);
+      toast.error('Wallet error', errorMessage);
+    } finally {
+      setWalletConnecting(false);
     }
   };
 
@@ -58,6 +105,50 @@ export function AuthForm({ onBack }: AuthFormProps) {
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">BugVoyant</h1>
             <p className="text-gray-400">Transform incidents into insights</p>
+          </div>
+
+          {/* SSO Options */}
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={() => handleOAuthSignIn('google')}
+              disabled={loading || walletConnecting}
+              className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+            >
+              <Chrome className="w-5 h-5" />
+              <span>Continue with Google</span>
+            </button>
+
+            <button
+              onClick={() => handleOAuthSignIn('github')}
+              disabled={loading || walletConnecting}
+              className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
+            >
+              <Github className="w-5 h-5" />
+              <span>Continue with GitHub</span>
+            </button>
+
+            <button
+              onClick={handleWalletSignIn}
+              disabled={loading || walletConnecting}
+              className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-green-600/25"
+            >
+              {walletConnecting ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              ) : (
+                <Wallet className="w-5 h-5" />
+              )}
+              <span>Connect Algorand Wallet</span>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-[#0f1419] text-gray-400">or continue with email</span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -113,7 +204,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || walletConnecting}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-blue-600/25"
             >
               {loading ? (
@@ -134,6 +225,19 @@ export function AuthForm({ onBack }: AuthFormProps) {
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
+          </div>
+
+          {/* Web3 Notice */}
+          <div className="mt-6 p-4 bg-green-600/10 border border-green-600/20 rounded-xl">
+            <div className="flex items-start space-x-3">
+              <Wallet className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-green-400 font-medium mb-1">Web3-Native Authentication</h4>
+                <p className="text-gray-400 text-sm">
+                  Connect your Algorand wallet for seamless Web3 authentication. Your wallet signature proves ownership without passwords.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

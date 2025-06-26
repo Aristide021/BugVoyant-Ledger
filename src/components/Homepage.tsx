@@ -13,7 +13,10 @@ import {
   Clock,
   Users,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  Github,
+  Chrome,
+  Wallet
 } from 'lucide-react';
 
 interface HomepageProps {
@@ -53,9 +56,9 @@ export function Homepage({ onGetStarted }: HomepageProps) {
       color: 'from-indigo-500 to-purple-500'
     },
     {
-      icon: Link,
-      title: 'Seamless Integration',
-      description: 'One-click Sentry webhook setup with secure token management and multi-project support',
+      icon: Wallet,
+      title: 'Web3-Native Auth',
+      description: 'Sign in with Google, GitHub, or your Algorand wallet for seamless Web3-native authentication',
       color: 'from-teal-500 to-blue-500'
     }
   ];
@@ -85,6 +88,27 @@ export function Homepage({ onGetStarted }: HomepageProps) {
       author: "Jennifer Park",
       role: "CTO",
       company: "ScaleUp Inc"
+    }
+  ];
+
+  const authMethods = [
+    {
+      icon: Chrome,
+      name: 'Google SSO',
+      description: 'One-click sign-in with your Google account',
+      color: 'from-red-500 to-orange-500'
+    },
+    {
+      icon: Github,
+      name: 'GitHub SSO',
+      description: 'Developer-friendly authentication',
+      color: 'from-gray-700 to-gray-900'
+    },
+    {
+      icon: Wallet,
+      name: 'Algorand Wallet',
+      description: 'Web3-native wallet authentication',
+      color: 'from-green-500 to-emerald-500'
     }
   ];
 
@@ -158,8 +182,37 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           </div>
         </section>
 
-        {/* Stats Section */}
+        {/* Auth Methods Section */}
         <section className="py-16 border-y border-gray-800">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                Multiple Authentication Options
+              </h2>
+              <p className="text-gray-300 max-w-2xl mx-auto">
+                Choose your preferred sign-in method. From traditional SSO to Web3-native wallet authentication.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {authMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="bg-[#0f1419] border border-gray-800 rounded-2xl p-6 text-center hover:border-gray-700 transition-all duration-300"
+                >
+                  <div className={`inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r ${method.color} rounded-2xl mb-4`}>
+                    <method.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{method.name}</h3>
+                  <p className="text-gray-400 text-sm">{method.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((stat, index) => (
@@ -228,7 +281,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl mb-4 shadow-lg">
                     <span className="text-white font-bold text-lg">1</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Primary: Gemini 2.5 Flash</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">Primary: Gemini 2.0 Flash</h3>
                   <p className="text-green-400 text-sm mb-2 font-medium">~$0.0014 per report</p>
                   <p className="text-gray-400 text-xs">Fastest & most cost-effective</p>
                 </div>
