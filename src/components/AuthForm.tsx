@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { walletService } from '../lib/wallet';
 import { toast } from './Toast';
 
 interface AuthFormProps {
@@ -15,7 +16,14 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [walletConnecting, setWalletConnecting] = useState(false);
+  const [availableWallets, setAvailableWallets] = useState<string[]>([]);
   const { signUp, signIn, signInWithOAuth, signInWithWallet } = useAuth();
+
+  useEffect(() => {
+    // Check available wallets on component mount
+    const wallets = walletService.getAvailableWallets();
+    setAvailableWallets(wallets);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +90,16 @@ export function AuthForm({ onBack }: AuthFormProps) {
     }
   };
 
+  const getWalletButtonText = () => {
+    if (availableWallets.includes('Pera Wallet')) {
+      return 'Connect Pera Wallet';
+    } else if (availableWallets.includes('AlgoSigner')) {
+      return 'Connect AlgoSigner';
+    } else {
+      return 'Connect Algorand Wallet (Demo)';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-cyan-600/5"></div>
@@ -137,9 +155,27 @@ export function AuthForm({ onBack }: AuthFormProps) {
               ) : (
                 <Wallet className="w-5 h-5" />
               )}
-              <span>Connect Algorand Wallet</span>
+              <span>{getWalletButtonText()}</span>
             </button>
           </div>
+
+          {/* Wallet Status Info */}
+          {availableWallets.length > 0 && (
+            <div className="mb-6 p-3 bg-blue-600/10 border border-blue-600/20 rounded-xl">
+              <div className="flex items-start space-x-2">
+                <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-blue-400 text-sm font-medium">Available Wallets</p>
+                  <p className="text-gray-400 text-xs">
+                    {availableWallets.filter(w => w !== 'Demo Mode').length > 0 
+                      ? availableWallets.filter(w => w !== 'Demo Mode').join(', ')
+                      : 'Demo mode available for testing'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative mb-6">

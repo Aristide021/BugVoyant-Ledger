@@ -1,4 +1,9 @@
-import algosdk from 'algosdk';
+import { Buffer } from 'buffer';
+
+// Make Buffer available globally for algosdk
+if (typeof window !== 'undefined') {
+  (window as any).Buffer = Buffer;
+}
 
 interface WalletConnection {
   success: boolean;
@@ -38,8 +43,8 @@ export class WalletService {
         return this.connectAlgoSigner();
       }
 
-      // Fallback to WalletConnect
-      return this.connectWalletConnect();
+      // Fallback to demo mode for development
+      return this.connectDemoWallet();
     } catch (error) {
       console.error('Wallet connection error:', error);
       return {
@@ -101,13 +106,13 @@ export class WalletService {
     }
   }
 
-  private async connectWalletConnect(): Promise<WalletConnection> {
+  private async connectDemoWallet(): Promise<WalletConnection> {
     try {
-      // For demo purposes, we'll simulate a wallet connection
-      // In production, you'd integrate with @walletconnect/modal
-      const mockAddress = 'DEMO' + Math.random().toString(36).substring(2, 15).toUpperCase();
+      // Generate a valid-looking Algorand address for demo
+      const demoAddress = this.generateDemoAddress();
       
-      this.connectedAddress = mockAddress;
+      this.connectedAddress = demoAddress;
+      this.walletConnector = { type: 'demo' };
       
       return {
         success: true,
@@ -116,9 +121,19 @@ export class WalletService {
     } catch (error) {
       return {
         success: false,
-        error: 'WalletConnect not available'
+        error: 'Demo wallet connection failed'
       };
     }
+  }
+
+  private generateDemoAddress(): string {
+    // Generate a valid-looking Algorand address (58 characters, base32)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let result = '';
+    for (let i = 0; i < 58; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
   }
 
   async signMessage(message: string): Promise<SignatureResult> {
@@ -153,9 +168,11 @@ export class WalletService {
           signature: signedData.blob
         };
       } else {
-        // Mock signing for demo
+        // Demo signing - create a realistic-looking signature
+        const timestamp = Date.now().toString();
+        const addressHash = this.connectedAddress.slice(0, 8);
         const mockSignature = Buffer.from(
-          `mock_signature_${this.connectedAddress}_${Date.now()}`
+          `demo_sig_${addressHash}_${timestamp}_${message.slice(0, 20)}`
         ).toString('base64');
         
         return {
@@ -190,6 +207,25 @@ export class WalletService {
 
   isConnected(): boolean {
     return !!this.connectedAddress;
+  }
+
+  // Check if real wallet extensions are available
+  getAvailableWallets(): string[] {
+    const available: string[] = [];
+    
+    if (typeof window !== 'undefined') {
+      if ((window as any).PeraWallet) {
+        available.push('Pera Wallet');
+      }
+      if ((window as any).AlgoSigner) {
+        available.push('AlgoSigner');
+      }
+    }
+    
+    // Always include demo mode for development
+    available.push('Demo Mode');
+    
+    return available;
   }
 }
 
