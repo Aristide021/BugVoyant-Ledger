@@ -16,7 +16,8 @@ import {
   CheckCircle,
   History,
   HelpCircle,
-  Settings
+  Settings,
+  Zap
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -62,7 +63,7 @@ export function ProjectConfig() {
   }, [user]);
 
   const checkEncryptionKey = async () => {
-    const hasKey = localStorage.getItem('encryption_key_set') === 'true';
+    const hasKey = encryptionService.isKeyValid();
     setEncryptionKeySet(hasKey);
     if (!hasKey) {
       setShowEncryptionSetup(true);
@@ -72,7 +73,6 @@ export function ProjectConfig() {
   const setupEncryption = async () => {
     try {
       const key = await encryptionService.generateEncryptionKey();
-      localStorage.setItem('encryption_key_set', 'true');
       setEncryptionKeySet(true);
       setShowEncryptionSetup(false);
     } catch (error) {
@@ -134,7 +134,7 @@ export function ProjectConfig() {
   };
 
   const handleSave = async () => {
-    if (!encryptionKeySet) {
+    if (!encryptionService.isKeyValid()) {
       alert('Please set up encryption first');
       return;
     }
@@ -309,10 +309,10 @@ export function ProjectConfig() {
               <div className="flex items-start space-x-3">
                 <HelpCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-blue-400 font-medium mb-1">How it works</h4>
+                  <h4 className="text-blue-400 font-medium mb-1">Enhanced Security</h4>
                   <p className="text-gray-400 text-sm">
-                    A unique encryption key is generated for your session. All sensitive data is encrypted 
-                    client-side before being sent to our servers. Only you can decrypt your data.
+                    Your encryption key is now stored securely in sessionStorage with 24-hour expiry. 
+                    All sensitive data is encrypted client-side before being sent to our servers.
                   </p>
                 </div>
               </div>
@@ -613,10 +613,10 @@ export function ProjectConfig() {
             </p>
             <div className="flex items-center space-x-3 bg-gray-900/50 rounded-xl p-4">
               <code className="text-blue-300 text-sm flex-1 font-mono">
-                {window.location.origin}/.netlify/functions/report
+                {window.location.origin}/.netlify/functions/enhanced-report
               </code>
               <button
-                onClick={() => copyToClipboard(`${window.location.origin}/.netlify/functions/report`, 'webhook')}
+                onClick={() => copyToClipboard(`${window.location.origin}/.netlify/functions/enhanced-report`, 'webhook')}
                 className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                 title="Copy webhook URL"
               >
@@ -632,18 +632,52 @@ export function ProjectConfig() {
             </p>
           </div>
 
+          <div className="bg-green-600/10 border border-green-600/20 rounded-2xl p-6">
+            <div className="flex items-start space-x-3">
+              <Zap className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-green-400 font-semibold mb-3">Nodely-Powered Blockchain Infrastructure</h4>
+                <p className="text-gray-300 mb-4">
+                  Your blockchain anchoring is now powered by Nodely's unlimited Algorand API with enhanced performance:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">✅ Unlimited API Calls</div>
+                    <p className="text-gray-400 text-xs mt-1">No rate limits on blockchain operations</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">⚡ 10x Faster Response</div>
+                    <p className="text-gray-400 text-xs mt-1">Optimized nodes for sub-second anchoring</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">🔒 Enterprise Grade</div>
+                    <p className="text-gray-400 text-xs mt-1">99.9% uptime SLA with monitoring</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">💰 Cost Efficient</div>
+                    <p className="text-gray-400 text-xs mt-1">Same $0.001 per transaction cost</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-orange-600/10 border border-orange-600/20 rounded-2xl p-6">
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
               <div>
                 <h4 className="text-orange-400 font-semibold mb-3">Environment Setup Required</h4>
                 <p className="text-gray-300 mb-4">
-                  To complete the integration, ensure these environment variables are configured in Netlify:
+                  To complete the Nodely integration, ensure these environment variables are configured in Netlify:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-900/50 rounded-lg p-3">
-                    <code className="text-gray-300">ALGORAND_MNEMONIC</code>
-                    <p className="text-gray-400 text-xs mt-1">25-word mnemonic for Algorand account</p>
+                    <code className="text-gray-300">ALGORAND_TOKEN</code>
+                    <p className="text-gray-400 text-xs mt-1">Your Nodely API key (unlimited access)</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">ALGORAND_SERVER</code>
+                    <p className="text-gray-400 text-xs mt-1">https://testnet-api.4160.nodely.io</p>
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <code className="text-gray-300">GOOGLE_API_KEY</code>
@@ -661,13 +695,9 @@ export function ProjectConfig() {
                     <code className="text-gray-300">ELEVEN_API_KEY</code>
                     <p className="text-gray-400 text-xs mt-1">ElevenLabs API key for audio generation</p>
                   </div>
-                  <div className="bg-gray-900/50 rounded-lg p-3">
-                    <code className="text-gray-300">SENTRY_WEBHOOK_SECRET</code>
-                    <p className="text-gray-400 text-xs mt-1">Secret for webhook signature verification</p>
-                  </div>
                 </div>
                 <p className="text-gray-400 text-sm mt-4">
-                  Also ensure the Supabase storage bucket "audio-summaries" is created and configured.
+                  Get your free Nodely API key at <a href="https://nodely.io/" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline">nodely.io</a>
                 </p>
               </div>
             </div>

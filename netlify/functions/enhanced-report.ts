@@ -14,15 +14,19 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY!;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 const ELEVEN_API_KEY = process.env.ELEVEN_API_KEY!;
-const ALGORAND_TOKEN = process.env.ALGORAND_TOKEN || '';
-const ALGORAND_SERVER = process.env.ALGORAND_SERVER || 'https://testnet-api.algonode.cloud';
+const ALGORAND_TOKEN = process.env.ALGORAND_TOKEN!;
+const ALGORAND_SERVER = process.env.ALGORAND_SERVER || 'https://testnet-api.4160.nodely.io';
 const ALGORAND_MNEMONIC = process.env.ALGORAND_MNEMONIC!;
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-// Initialize Algorand client
-const algodClient = new algosdk.Algodv2(ALGORAND_TOKEN, ALGORAND_SERVER, '');
+// Initialize Algorand client with Nodely headers
+const algodClient = new algosdk.Algodv2(
+  { 'X-API-Key': ALGORAND_TOKEN }, // ✅ Nodely header format
+  ALGORAND_SERVER,
+  ''
+);
 
 interface SentryWebhookEvent {
   action: string;
@@ -562,19 +566,19 @@ async function processIncident(
     // Step 3: Parallel processing for blockchain and audio
     const parallelTasks = [];
     
-    // Blockchain anchoring
+    // Blockchain anchoring with Nodely
     monitoring.startStep(reportId, 'blockchain_anchoring');
     parallelTasks.push(
       anchorOnAlgorand(markdown, reportId)
         .then(tx => {
           algorandTx = tx;
-          monitoring.completeStep(reportId, 'blockchain_anchoring', 'algorand', 1); // ~$0.001
+          monitoring.completeStep(reportId, 'blockchain_anchoring', 'algorand-nodely', 1); // ~$0.001
           return monitoring.trackCost(
             project.user_id,
             project.id,
             {
               serviceType: 'blockchain',
-              providerName: 'algorand',
+              providerName: 'algorand-nodely',
               costCents: 1,
               usageUnits: 1,
               unitType: 'transactions'
@@ -785,6 +789,14 @@ async function anchorOnAlgorand(markdown: string, reportId: number): Promise<str
   return resilience.withCircuitBreaker(
     () => resilience.withRetry(
       async () => {
+        // Nodely health check
+        try {
+          const status = await algodClient.status().do();
+          console.log(`✅ Nodely algod OK – last round ${status['last-round']} for report ${reportId}`);
+        } catch (error) {
+          console.warn(`⚠️ Nodely health check failed for report ${reportId}:`, error);
+        }
+
         // Generate SHA-256 hash
         const encoder = new TextEncoder();
         const data = encoder.encode(markdown);
@@ -814,13 +826,13 @@ async function anchorOnAlgorand(markdown: string, reportId: number): Promise<str
         // Wait for confirmation
         await algosdk.waitForConfirmation(algodClient, txId, 4);
         
-        console.log(`✅ Successfully anchored hash on Algorand: ${txId} for report ${reportId}`);
+        console.log(`✅ Successfully anchored hash on Algorand via Nodely: ${txId} for report ${reportId}`);
         return txId;
       },
       RETRY_CONFIGS.BLOCKCHAIN,
-      { reportId, stepName: 'blockchain_anchoring', operationName: 'algorand-anchor' }
+      { reportId, stepName: 'blockchain_anchoring', operationName: 'algorand-nodely-anchor' }
     ),
-    'algorand',
+    'algorand-nodely',
     CIRCUIT_BREAKER_CONFIGS.BLOCKCHAIN
   );
 }
@@ -917,7 +929,8 @@ async function sendSlackNotification(
     issue: issue.title,
     provider: usedProvider,
     hasAudio: !!audioUrl,
-    hasBlockchainProof: !!algorandTx
+    hasBlockchainProof: !!algorandTx,
+    nodelyPowered: true
   });
 }
 
