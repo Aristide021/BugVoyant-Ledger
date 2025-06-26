@@ -1,11 +1,15 @@
 import { supabase } from './supabase';
 
-// Client-side encryption utilities
+// Client-side encryption utilities with enhanced security
 export class EncryptionService {
   private static instance: EncryptionService;
   private encryptionKey: string | null = null;
+  private keyExpiryTime: number | null = null;
+  private readonly KEY_EXPIRY_HOURS = 24; // 24 hour session expiry
 
-  private constructor() {}
+  private constructor() {
+    this.loadPersistedKey();
+  }
 
   static getInstance(): EncryptionService {
     if (!EncryptionService.instance) {
@@ -14,18 +18,83 @@ export class EncryptionService {
     return EncryptionService.instance;
   }
 
+  // Load encryption key from sessionStorage with expiry check
+  private loadPersistedKey(): void {
+    try {
+      const keyData = sessionStorage.getItem('encryption_key_data');
+      if (keyData) {
+        const { key, expiry } = JSON.parse(keyData);
+        if (Date.now() < expiry) {
+          this.encryptionKey = key;
+          this.keyExpiryTime = expiry;
+        } else {
+          // Key expired, remove it
+          sessionStorage.removeItem('encryption_key_data');
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load persisted encryption key:', error);
+      sessionStorage.removeItem('encryption_key_data');
+    }
+  }
+
   // Generate a secure encryption key for the user session
   async generateEncryptionKey(): Promise<string> {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     const key = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    // Set expiry time
+    const expiry = Date.now() + (this.KEY_EXPIRY_HOURS * 60 * 60 * 1000);
+    
     this.encryptionKey = key;
+    this.keyExpiryTime = expiry;
+    
+    // Persist to sessionStorage with expiry
+    try {
+      sessionStorage.setItem('encryption_key_data', JSON.stringify({
+        key,
+        expiry
+      }));
+    } catch (error) {
+      console.warn('Failed to persist encryption key:', error);
+    }
+    
     return key;
   }
 
   // Set encryption key (from secure storage or user input)
   setEncryptionKey(key: string): void {
+    const expiry = Date.now() + (this.KEY_EXPIRY_HOURS * 60 * 60 * 1000);
     this.encryptionKey = key;
+    this.keyExpiryTime = expiry;
+    
+    try {
+      sessionStorage.setItem('encryption_key_data', JSON.stringify({
+        key,
+        expiry
+      }));
+    } catch (error) {
+      console.warn('Failed to persist encryption key:', error);
+    }
+  }
+
+  // Check if encryption key is valid and not expired
+  isKeyValid(): boolean {
+    return !!(this.encryptionKey && 
+             this.keyExpiryTime && 
+             Date.now() < this.keyExpiryTime);
+  }
+
+  // Clear encryption key
+  clearKey(): void {
+    this.encryptionKey = null;
+    this.keyExpiryTime = null;
+    try {
+      sessionStorage.removeItem('encryption_key_data');
+    } catch (error) {
+      console.warn('Failed to clear encryption key:', error);
+    }
   }
 
   // Store encrypted secret
@@ -34,8 +103,8 @@ export class EncryptionService {
     secretType: 'sentry_auth_token' | 'slack_webhook_url' | 'api_key',
     secretValue: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (!this.encryptionKey) {
-      return { success: false, error: 'Encryption key not set' };
+    if (!this.isKeyValid()) {
+      return { success: false, error: 'Encryption key not set or expired' };
     }
 
     try {
@@ -107,8 +176,8 @@ export class EncryptionService {
     newSecretValue: string,
     reason: string
   ): Promise<{ success: boolean; error?: string }> {
-    if (!this.encryptionKey) {
-      return { success: false, error: 'Encryption key not set' };
+    if (!this.isKeyValid()) {
+      return { success: false, error: 'Encryption key not set or expired' };
     }
 
     try {

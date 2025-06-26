@@ -98,8 +98,8 @@ export function ReportHistory() {
     const totalReports = reportsData.length;
     const completedReports = reportsData.filter(r => r.status === 'completed').length;
     const successRate = totalReports > 0 ? (completedReports / totalReports) * 100 : 0;
-    const costSavings = completedReports * 200;
-    const avgProcessingTime = 25;
+    const costSavings = completedReports * 200; // $200 per manual post-mortem
+    const avgProcessingTime = 25; // Average processing time in seconds
 
     setStats({
       totalReports,
@@ -263,6 +263,60 @@ export function ReportHistory() {
     } else {
       copyToClipboard(window.location.href, 'share');
     }
+  };
+
+  // Enhanced markdown rendering with proper formatting
+  const renderMarkdown = (markdown: string) => {
+    return (
+      <div className="prose prose-invert max-w-none">
+        <div 
+          className="whitespace-pre-wrap text-gray-300 leading-relaxed"
+          style={{
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+          }}
+        >
+          {markdown.split('\n').map((line, index) => {
+            // Handle headers
+            if (line.startsWith('# ')) {
+              return <h1 key={index} className="text-2xl font-bold text-white mt-6 mb-4">{line.substring(2)}</h1>;
+            }
+            if (line.startsWith('## ')) {
+              return <h2 key={index} className="text-xl font-semibold text-white mt-5 mb-3">{line.substring(3)}</h2>;
+            }
+            if (line.startsWith('### ')) {
+              return <h3 key={index} className="text-lg font-medium text-white mt-4 mb-2">{line.substring(4)}</h3>;
+            }
+            
+            // Handle bold text
+            const boldText = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+            
+            // Handle code blocks
+            if (line.startsWith('```')) {
+              return <div key={index} className="bg-gray-900 border border-gray-700 rounded p-3 my-2 font-mono text-sm"></div>;
+            }
+            
+            // Handle list items
+            if (line.startsWith('- ') || line.startsWith('* ')) {
+              return (
+                <div key={index} className="flex items-start space-x-2 my-1">
+                  <span className="text-blue-400 mt-2">•</span>
+                  <span dangerouslySetInnerHTML={{ __html: boldText.substring(2) }} />
+                </div>
+              );
+            }
+            
+            // Regular paragraphs
+            if (line.trim()) {
+              return (
+                <p key={index} className="my-2" dangerouslySetInnerHTML={{ __html: boldText }} />
+              );
+            }
+            
+            return <br key={index} />;
+          })}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -555,11 +609,7 @@ export function ReportHistory() {
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <div className="prose prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
-                  {selectedReport.markdown}
-                </div>
-              </div>
+              {renderMarkdown(selectedReport.markdown)}
             </div>
           </div>
         </div>
