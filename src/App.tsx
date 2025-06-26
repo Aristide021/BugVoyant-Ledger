@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from './hooks/useAuth';
+import { Homepage } from './components/Homepage';
 import { AuthForm } from './components/AuthForm';
 import { Dashboard } from './components/Dashboard';
 
 function App() {
   const { user, loading } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
   if (loading) {
     return (
@@ -14,11 +16,18 @@ function App() {
     );
   }
 
-  if (!user) {
-    return <AuthForm />;
+  // If user is authenticated, show dashboard
+  if (user) {
+    return <Dashboard />;
   }
 
-  return <Dashboard />;
+  // If user wants to authenticate, show auth form
+  if (showAuth) {
+    return <AuthForm onBack={() => setShowAuth(false)} />;
+  }
+
+  // Otherwise show homepage
+  return <Homepage onGetStarted={() => setShowAuth(true)} />;
 }
 
 export default App;

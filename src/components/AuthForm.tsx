@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
-export function AuthForm() {
+interface AuthFormProps {
+  onBack?: () => void;
+}
+
+export function AuthForm({ onBack }: AuthFormProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,6 +41,16 @@ export function AuthForm() {
       
       <div className="relative w-full max-w-md">
         <div className="backdrop-blur-lg bg-white/10 rounded-2xl border border-white/20 shadow-2xl p-8">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="flex items-center space-x-2 text-slate-400 hover:text-white transition-colors mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to homepage</span>
+            </button>
+          )}
+
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl mb-4 shadow-lg">
               <Zap className="w-8 h-8 text-white" />
