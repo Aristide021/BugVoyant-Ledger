@@ -15,7 +15,8 @@ import {
   Copy,
   CheckCircle,
   History,
-  HelpCircle
+  HelpCircle,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -61,8 +62,6 @@ export function ProjectConfig() {
   }, [user]);
 
   const checkEncryptionKey = async () => {
-    // In a real implementation, you might check if the user has set up encryption
-    // For now, we'll prompt them to set it up
     const hasKey = localStorage.getItem('encryption_key_set') === 'true';
     setEncryptionKeySet(hasKey);
     if (!hasKey) {
@@ -76,9 +75,6 @@ export function ProjectConfig() {
       localStorage.setItem('encryption_key_set', 'true');
       setEncryptionKeySet(true);
       setShowEncryptionSetup(false);
-      
-      // In a real implementation, you'd want to securely store this key
-      // or derive it from user credentials
     } catch (error) {
       console.error('Error setting up encryption:', error);
     }
@@ -100,7 +96,6 @@ export function ProjectConfig() {
       if (error) throw error;
       setProjects(data || []);
       
-      // Fetch secret statuses for each project
       for (const project of data || []) {
         await fetchSecretStatus(project.id);
       }
@@ -153,7 +148,6 @@ export function ProjectConfig() {
       let projectId: string;
 
       if (editingProject) {
-        // Update existing project
         const { error } = await supabase
           .from('projects')
           .update({
@@ -165,7 +159,6 @@ export function ProjectConfig() {
         if (error) throw error;
         projectId = editingProject.id;
       } else {
-        // Create new project
         const { data, error } = await supabase
           .from('projects')
           .insert({
@@ -179,7 +172,6 @@ export function ProjectConfig() {
         projectId = data.id;
       }
 
-      // Store encrypted secrets
       if (formData.sentry_auth_token) {
         await encryptionService.storeSecret(
           projectId,
@@ -300,23 +292,25 @@ export function ProjectConfig() {
       {/* Encryption Setup Modal */}
       {showEncryptionSetup && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-600 max-w-md w-full p-6">
+          <div className="bg-[#0f1419] border border-gray-800 rounded-2xl max-w-md w-full p-6">
             <div className="flex items-center space-x-3 mb-4">
-              <Shield className="w-6 h-6 text-blue-400" />
+              <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-blue-400" />
+              </div>
               <h3 className="text-lg font-semibold text-white">Security Setup Required</h3>
             </div>
             
-            <p className="text-slate-300 mb-6">
+            <p className="text-gray-400 mb-6">
               To securely store your API keys and tokens, we need to set up client-side encryption. 
               This ensures your sensitive data is encrypted before being stored in the database.
             </p>
             
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+            <div className="bg-blue-600/10 border border-blue-600/20 rounded-xl p-4 mb-6">
               <div className="flex items-start space-x-3">
                 <HelpCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="text-blue-400 font-medium mb-1">How it works</h4>
-                  <p className="text-slate-300 text-sm">
+                  <p className="text-gray-400 text-sm">
                     A unique encryption key is generated for your session. All sensitive data is encrypted 
                     client-side before being sent to our servers. Only you can decrypt your data.
                   </p>
@@ -324,74 +318,83 @@ export function ProjectConfig() {
               </div>
             </div>
             
-            <div className="flex space-x-3">
-              <button
-                onClick={setupEncryption}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                Set Up Encryption
-              </button>
-            </div>
+            <button
+              onClick={setupEncryption}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200"
+            >
+              Set Up Encryption
+            </button>
           </div>
         </div>
       )}
 
+      {/* Header */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+            <Settings className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Project Configuration</h2>
+            <p className="text-gray-400">Manage your projects and security settings</p>
+          </div>
+        </div>
+        
         <div className="flex items-center space-x-3">
-          <h2 className="text-2xl font-bold text-white">Project Configuration</h2>
           {encryptionKeySet && (
-            <div className="flex items-center space-x-2 bg-green-500/20 border border-green-500/30 rounded-lg px-3 py-1">
+            <div className="flex items-center space-x-2 bg-green-600/20 border border-green-600/30 rounded-xl px-3 py-2">
               <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-green-400 text-sm">Encryption Active</span>
+              <span className="text-green-400 text-sm font-medium">Encryption Active</span>
             </div>
           )}
+          <button
+            onClick={() => setIsCreating(true)}
+            disabled={!encryptionKeySet}
+            className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-blue-600/25"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Project</span>
+          </button>
         </div>
-        <button
-          onClick={() => setIsCreating(true)}
-          disabled={!encryptionKeySet}
-          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Project</span>
-        </button>
       </div>
 
+      {/* Create/Edit Form */}
       {(isCreating || editingProject) && (
-        <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">
+        <div className="bg-[#0f1419] border border-gray-800 rounded-2xl p-6">
+          <h3 className="text-xl font-semibold text-white mb-6">
             {editingProject ? 'Edit Project' : 'Create New Project'}
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Project Name
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 placeholder="My Production App"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Sentry Organization Slug
               </label>
               <input
                 type="text"
                 value={formData.sentry_org_slug}
                 onChange={(e) => setFormData({ ...formData, sentry_org_slug: e.target.value })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 placeholder="my-org"
               />
             </div>
             
             <div>
               <div className="flex items-center space-x-2 mb-2">
-                <label className="text-sm font-medium text-slate-300">
+                <label className="text-sm font-medium text-gray-300">
                   Sentry Auth Token
                 </label>
                 <Shield className="w-4 h-4 text-green-400" />
@@ -401,13 +404,13 @@ export function ProjectConfig() {
                   type={showSecrets.sentry_token ? 'text' : 'password'}
                   value={formData.sentry_auth_token}
                   onChange={(e) => setFormData({ ...formData, sentry_auth_token: e.target.value })}
-                  className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   placeholder="sntrys_..."
                 />
                 <button
                   type="button"
                   onClick={() => setShowSecrets(prev => ({ ...prev, sentry_token: !prev.sentry_token }))}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
                 >
                   {showSecrets.sentry_token ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -416,7 +419,7 @@ export function ProjectConfig() {
             
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-2">
-                <label className="text-sm font-medium text-slate-300">
+                <label className="text-sm font-medium text-gray-300">
                   Slack Webhook URL
                 </label>
                 <Shield className="w-4 h-4 text-green-400" />
@@ -426,13 +429,13 @@ export function ProjectConfig() {
                   type={showSecrets.slack_webhook ? 'text' : 'password'}
                   value={formData.slack_webhook_url}
                   onChange={(e) => setFormData({ ...formData, slack_webhook_url: e.target.value })}
-                  className="w-full px-3 py-2 pr-10 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 pr-12 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   placeholder="https://hooks.slack.com/services/..."
                 />
                 <button
                   type="button"
                   onClick={() => setShowSecrets(prev => ({ ...prev, slack_webhook: !prev.slack_webhook }))}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
                 >
                   {showSecrets.slack_webhook ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -443,14 +446,14 @@ export function ProjectConfig() {
           <div className="flex items-center space-x-3">
             <button
               onClick={handleSave}
-              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200"
             >
               <Save className="w-4 h-4" />
-              <span>Save</span>
+              <span>Save Project</span>
             </button>
             <button
               onClick={resetForm}
-              className="flex items-center space-x-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200"
             >
               <X className="w-4 h-4" />
               <span>Cancel</span>
@@ -459,44 +462,53 @@ export function ProjectConfig() {
         </div>
       )}
 
+      {/* Projects List */}
       <div className="space-y-4">
         {projects.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-8 text-center">
-            <p className="text-slate-400 mb-4">No projects configured yet.</p>
-            <p className="text-sm text-slate-500">
-              Create your first project to start receiving incident reports.
-            </p>
+          <div className="bg-[#0f1419] border border-gray-800 rounded-2xl p-8 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Settings className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">No projects configured yet</h3>
+            <p className="text-gray-400 mb-4">Create your first project to start receiving incident reports.</p>
+            <button
+              onClick={() => setIsCreating(true)}
+              disabled={!encryptionKeySet}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Create Project
+            </button>
           </div>
         ) : (
           projects.map((project) => (
             <div
               key={project.id}
-              className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-200"
+              className="bg-[#0f1419] border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-all duration-200"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white">{project.name}</h3>
-                  <div className="flex items-center space-x-4 mt-2 text-xs text-slate-500">
+                  <h3 className="text-xl font-semibold text-white mb-2">{project.name}</h3>
+                  <div className="flex items-center space-x-4 text-sm text-gray-400">
                     <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => toggleAuditLogs(project.id)}
-                    className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors p-2"
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                     title="View audit logs"
                   >
                     <History className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => startEditing(project)}
-                    className="flex items-center space-x-1 text-slate-400 hover:text-white transition-colors p-2"
+                    className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(project.id)}
-                    className="flex items-center space-x-1 text-slate-400 hover:text-red-400 transition-colors p-2"
+                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-600/10 rounded-lg transition-all duration-200"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -505,22 +517,24 @@ export function ProjectConfig() {
 
               {/* Secret Status */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-white/5 rounded-lg p-3">
+                <div className="bg-gray-800/50 rounded-xl p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Key className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm text-slate-300">Sentry Token</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                        <Key className="w-4 h-4 text-blue-400" />
+                      </div>
+                      <span className="text-white font-medium">Sentry Token</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       {secretStatuses[project.id]?.sentry_auth_token ? (
-                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <CheckCircle className="w-5 h-5 text-green-400" />
                       ) : (
-                        <AlertCircle className="w-4 h-4 text-red-400" />
+                        <AlertCircle className="w-5 h-5 text-red-400" />
                       )}
                       {secretStatuses[project.id]?.sentry_auth_token && (
                         <button
                           onClick={() => rotateSecret(project.id, 'sentry_auth_token')}
-                          className="text-slate-400 hover:text-white transition-colors"
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
                           title="Rotate token"
                         >
                           <RotateCcw className="w-4 h-4" />
@@ -530,22 +544,24 @@ export function ProjectConfig() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 rounded-lg p-3">
+                <div className="bg-gray-800/50 rounded-xl p-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Key className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm text-slate-300">Slack Webhook</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                        <Key className="w-4 h-4 text-purple-400" />
+                      </div>
+                      <span className="text-white font-medium">Slack Webhook</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       {secretStatuses[project.id]?.slack_webhook_url ? (
-                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <CheckCircle className="w-5 h-5 text-green-400" />
                       ) : (
-                        <AlertCircle className="w-4 h-4 text-red-400" />
+                        <AlertCircle className="w-5 h-5 text-red-400" />
                       )}
                       {secretStatuses[project.id]?.slack_webhook_url && (
                         <button
                           onClick={() => rotateSecret(project.id, 'slack_webhook_url')}
-                          className="text-slate-400 hover:text-white transition-colors"
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
                           title="Rotate webhook"
                         >
                           <RotateCcw className="w-4 h-4" />
@@ -558,23 +574,23 @@ export function ProjectConfig() {
 
               {/* Audit Logs */}
               {showAuditLogs[project.id] && (
-                <div className="bg-white/5 rounded-lg p-4 mt-4">
+                <div className="bg-gray-800/30 rounded-xl p-4 mt-4">
                   <h4 className="text-sm font-medium text-white mb-3">Recent Activity</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
                     {auditLogs[project.id]?.length > 0 ? (
                       auditLogs[project.id].map((log, index) => (
-                        <div key={index} className="flex items-center justify-between text-xs">
+                        <div key={index} className="flex items-center justify-between text-xs py-2 border-b border-gray-700 last:border-b-0">
                           <div className="flex items-center space-x-2">
-                            <span className="text-slate-400">
+                            <span className="text-gray-400">
                               {new Date(log.created_at).toLocaleString()}
                             </span>
-                            <span className="text-slate-300">{log.action}</span>
-                            <span className="text-slate-400">{log.resource_type}</span>
+                            <span className="text-white">{log.action}</span>
+                            <span className="text-gray-400">{log.resource_type}</span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-slate-400 text-xs">No recent activity</p>
+                      <p className="text-gray-400 text-xs">No recent activity</p>
                     )}
                   </div>
                 </div>
@@ -584,20 +600,24 @@ export function ProjectConfig() {
         )}
       </div>
 
+      {/* Configuration Info */}
       {projects.length > 0 && (
         <div className="space-y-4">
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-            <h4 className="text-blue-400 font-medium mb-2">Webhook Configuration</h4>
-            <p className="text-slate-300 text-sm mb-2">
+          <div className="bg-blue-600/10 border border-blue-600/20 rounded-2xl p-6">
+            <h4 className="text-blue-400 font-semibold mb-3 flex items-center space-x-2">
+              <ExternalLink className="w-5 h-5" />
+              <span>Webhook Configuration</span>
+            </h4>
+            <p className="text-gray-300 mb-4">
               Configure your Sentry projects to send webhooks to:
             </p>
-            <div className="flex items-center space-x-2">
-              <code className="bg-black/30 px-3 py-1 rounded text-blue-300 text-sm flex-1">
+            <div className="flex items-center space-x-3 bg-gray-900/50 rounded-xl p-4">
+              <code className="text-blue-300 text-sm flex-1 font-mono">
                 {window.location.origin}/.netlify/functions/report
               </code>
               <button
                 onClick={() => copyToClipboard(`${window.location.origin}/.netlify/functions/report`, 'webhook')}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                 title="Copy webhook URL"
               >
                 {copiedField === 'webhook' ? (
@@ -607,28 +627,46 @@ export function ProjectConfig() {
                 )}
               </button>
             </div>
-            <p className="text-slate-400 text-xs mt-2">
+            <p className="text-gray-400 text-sm mt-3">
               Make sure to enable "Issue" events in your Sentry webhook configuration.
             </p>
           </div>
 
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+          <div className="bg-orange-600/10 border border-orange-600/20 rounded-2xl p-6">
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-orange-400 font-medium mb-2">Environment Setup Required</h4>
-                <p className="text-slate-300 text-sm mb-2">
+                <h4 className="text-orange-400 font-semibold mb-3">Environment Setup Required</h4>
+                <p className="text-gray-300 mb-4">
                   To complete the integration, ensure these environment variables are configured in Netlify:
                 </p>
-                <ul className="text-slate-400 text-xs space-y-1">
-                  <li>• <code>ALGORAND_MNEMONIC</code> - 25-word mnemonic for Algorand account</li>
-                  <li>• <code>GOOGLE_API_KEY</code> - Google Gemini API key (primary AI provider)</li>
-                  <li>• <code>OPENAI_API_KEY</code> - OpenAI API key (fallback #1)</li>
-                  <li>• <code>ANTHROPIC_API_KEY</code> - Anthropic Claude API key (fallback #2)</li>
-                  <li>• <code>ELEVEN_API_KEY</code> - ElevenLabs API key for audio generation</li>
-                  <li>• <code>SENTRY_WEBHOOK_SECRET</code> - Secret for webhook signature verification</li>
-                </ul>
-                <p className="text-slate-400 text-xs mt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">ALGORAND_MNEMONIC</code>
+                    <p className="text-gray-400 text-xs mt-1">25-word mnemonic for Algorand account</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">GOOGLE_API_KEY</code>
+                    <p className="text-gray-400 text-xs mt-1">Google Gemini API key (primary AI provider)</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">OPENAI_API_KEY</code>
+                    <p className="text-gray-400 text-xs mt-1">OpenAI API key (fallback #1)</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">ANTHROPIC_API_KEY</code>
+                    <p className="text-gray-400 text-xs mt-1">Anthropic Claude API key (fallback #2)</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">ELEVEN_API_KEY</code>
+                    <p className="text-gray-400 text-xs mt-1">ElevenLabs API key for audio generation</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <code className="text-gray-300">SENTRY_WEBHOOK_SECRET</code>
+                    <p className="text-gray-400 text-xs mt-1">Secret for webhook signature verification</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-sm mt-4">
                   Also ensure the Supabase storage bucket "audio-summaries" is created and configured.
                 </p>
               </div>

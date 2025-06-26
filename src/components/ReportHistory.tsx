@@ -16,7 +16,8 @@ import {
   Search,
   Calendar,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -58,14 +59,21 @@ export function ReportHistory() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReports();
-  }, []);
+    if (user) {
+      fetchReports();
+    }
+  }, [user]);
 
   useEffect(() => {
     filterReports();
   }, [reports, searchTerm, statusFilter, dateFilter]);
 
   const fetchReports = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('reports')
@@ -73,7 +81,7 @@ export function ReportHistory() {
           *,
           projects!inner(name, sentry_org_slug, user_id)
         `)
-        .eq('projects.user_id', user?.id)
+        .eq('projects.user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -90,12 +98,8 @@ export function ReportHistory() {
     const totalReports = reportsData.length;
     const completedReports = reportsData.filter(r => r.status === 'completed').length;
     const successRate = totalReports > 0 ? (completedReports / totalReports) * 100 : 0;
-    
-    // Estimate cost savings (assuming manual post-mortem takes 2 hours at $100/hour)
     const costSavings = completedReports * 200;
-    
-    // Calculate average processing time (mock data for demo)
-    const avgProcessingTime = 25; // seconds
+    const avgProcessingTime = 25;
 
     setStats({
       totalReports,
@@ -108,7 +112,6 @@ export function ReportHistory() {
   const filterReports = () => {
     let filtered = reports;
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(report =>
         report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,12 +119,10 @@ export function ReportHistory() {
       );
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(report => report.status === statusFilter);
     }
 
-    // Date filter
     if (dateFilter !== 'all') {
       const now = new Date();
       const filterDate = new Date();
@@ -161,9 +162,9 @@ export function ReportHistory() {
       case 'pending_hash':
         return <Clock className="w-4 h-4 text-blue-400" />;
       case 'text_only':
-        return <FileText className="w-4 h-4 text-slate-400" />;
+        return <FileText className="w-4 h-4 text-gray-400" />;
       default:
-        return <Clock className="w-4 h-4 text-slate-400" />;
+        return <Clock className="w-4 h-4 text-gray-400" />;
     }
   };
 
@@ -260,7 +261,6 @@ export function ReportHistory() {
         console.error('Error sharing:', error);
       }
     } else {
-      // Fallback to copying URL
       copyToClipboard(window.location.href, 'share');
     }
   };
@@ -275,17 +275,27 @@ export function ReportHistory() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white">Incident Reports</h2>
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl flex items-center justify-center">
+            <Activity className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Incident Reports</h2>
+            <p className="text-gray-400">AI-generated post-mortem reports with blockchain verification</p>
+          </div>
+        </div>
+        
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowStats(!showStats)}
-            className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg transition-colors"
+            className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-xl transition-all duration-200"
           >
             <BarChart3 className="w-4 h-4" />
             <span>Analytics</span>
           </button>
-          <div className="text-slate-400 text-sm">
+          <div className="text-gray-400 text-sm bg-gray-800 px-3 py-2 rounded-xl">
             {filteredReports.length} of {reports.length} report{reports.length !== 1 ? 's' : ''}
           </div>
         </div>
@@ -293,49 +303,49 @@ export function ReportHistory() {
 
       {/* Analytics Panel */}
       {showStats && stats && (
-        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 rounded-xl p-6">
+        <div className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 border border-gray-800 rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Report Analytics</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
+            <div className="text-center bg-gray-800/50 rounded-xl p-4">
               <div className="text-2xl font-bold text-blue-400">{stats.totalReports}</div>
-              <div className="text-slate-400 text-sm">Total Reports</div>
+              <div className="text-gray-400 text-sm">Total Reports</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-gray-800/50 rounded-xl p-4">
               <div className="text-2xl font-bold text-green-400">{stats.successRate.toFixed(1)}%</div>
-              <div className="text-slate-400 text-sm">Success Rate</div>
+              <div className="text-gray-400 text-sm">Success Rate</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-gray-800/50 rounded-xl p-4">
               <div className="text-2xl font-bold text-purple-400">{stats.avgProcessingTime}s</div>
-              <div className="text-slate-400 text-sm">Avg Processing</div>
+              <div className="text-gray-400 text-sm">Avg Processing</div>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-gray-800/50 rounded-xl p-4">
               <div className="text-2xl font-bold text-yellow-400">${stats.costSavings.toLocaleString()}</div>
-              <div className="text-slate-400 text-sm">Cost Savings</div>
+              <div className="text-gray-400 text-sm">Cost Savings</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-4">
+      <div className="bg-[#0f1419] border border-gray-800 rounded-2xl p-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Search reports..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             />
           </div>
 
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all duration-200"
             >
               <option value="all">All Statuses</option>
               <option value="completed">Completed</option>
@@ -346,11 +356,11 @@ export function ReportHistory() {
           </div>
 
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all duration-200"
             >
               <option value="all">All Time</option>
               <option value="today">Today</option>
@@ -359,14 +369,14 @@ export function ReportHistory() {
             </select>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center">
             <button
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
                 setDateFilter('all');
               }}
-              className="text-slate-400 hover:text-white transition-colors text-sm"
+              className="text-gray-400 hover:text-white transition-colors text-sm font-medium"
             >
               Clear Filters
             </button>
@@ -374,13 +384,16 @@ export function ReportHistory() {
         </div>
       </div>
 
+      {/* Reports List */}
       {filteredReports.length === 0 ? (
-        <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-8 text-center">
-          <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <p className="text-slate-400 mb-2">
-            {reports.length === 0 ? 'No incident reports yet.' : 'No reports match your filters.'}
-          </p>
-          <p className="text-sm text-slate-500">
+        <div className="bg-[#0f1419] border border-gray-800 rounded-2xl p-8 text-center">
+          <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {reports.length === 0 ? 'No incident reports yet' : 'No reports match your filters'}
+          </h3>
+          <p className="text-gray-400">
             {reports.length === 0 
               ? 'Reports will appear here when Sentry webhooks are triggered.'
               : 'Try adjusting your search criteria or filters.'
@@ -388,15 +401,15 @@ export function ReportHistory() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="space-y-4">
           {filteredReports.map((report) => (
             <div
               key={report.id}
-              className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-200"
+              className="bg-[#0f1419] border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-all duration-200"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
+                  <div className="flex items-center space-x-3 mb-3">
                     {getStatusIcon(report.status)}
                     <h3 
                       className="text-lg font-semibold text-white truncate cursor-pointer hover:text-blue-300 transition-colors"
@@ -404,17 +417,18 @@ export function ReportHistory() {
                     >
                       {report.title}
                     </h3>
+                    <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
+                      {getStatusLabel(report.status)}
+                    </span>
                   </div>
                   
-                  <div className="flex items-center space-x-4 text-sm text-slate-400 mb-3">
-                    <span>Project: {report.projects.name}</span>
+                  <div className="flex items-center space-x-4 text-sm text-gray-400 mb-4">
+                    <span className="flex items-center space-x-1">
+                      <span>Project:</span>
+                      <span className="text-white">{report.projects.name}</span>
+                    </span>
                     <span>•</span>
                     <span>{new Date(report.created_at).toLocaleString()}</span>
-                    <span>•</span>
-                    <span className="flex items-center space-x-1">
-                      {getStatusIcon(report.status)}
-                      <span>{getStatusLabel(report.status)}</span>
-                    </span>
                   </div>
                   
                   <div className="flex items-center space-x-4 flex-wrap gap-2">
@@ -424,7 +438,7 @@ export function ReportHistory() {
                           e.stopPropagation();
                           playAudio(report.audio_url!, report.id);
                         }}
-                        className="flex items-center space-x-2 text-blue-400 hover:text-blue-300 transition-colors"
+                        className="flex items-center space-x-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-3 py-2 rounded-lg transition-all duration-200"
                       >
                         {playingAudio === report.audio_url ? (
                           <Pause className="w-4 h-4" />
@@ -442,7 +456,7 @@ export function ReportHistory() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="flex items-center space-x-2 text-green-400 hover:text-green-300 transition-colors"
+                        className="flex items-center space-x-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-2 rounded-lg transition-all duration-200"
                       >
                         <ExternalLink className="w-4 h-4" />
                         <span>Blockchain Proof</span>
@@ -454,7 +468,7 @@ export function ReportHistory() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center space-x-2 text-orange-400 hover:text-orange-300 transition-colors"
+                      className="flex items-center space-x-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 px-3 py-2 rounded-lg transition-all duration-200"
                     >
                       <ExternalLink className="w-4 h-4" />
                       <span>View in Sentry</span>
@@ -465,7 +479,7 @@ export function ReportHistory() {
                         e.stopPropagation();
                         exportReport(report, 'markdown');
                       }}
-                      className="flex items-center space-x-2 text-purple-400 hover:text-purple-300 transition-colors"
+                      className="flex items-center space-x-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 px-3 py-2 rounded-lg transition-all duration-200"
                     >
                       <Download className="w-4 h-4" />
                       <span>Export</span>
@@ -476,7 +490,7 @@ export function ReportHistory() {
                         e.stopPropagation();
                         copyToClipboard(report.markdown, `report-${report.id}`);
                       }}
-                      className="flex items-center space-x-2 text-slate-400 hover:text-slate-300 transition-colors"
+                      className="flex items-center space-x-2 bg-gray-600/20 hover:bg-gray-600/30 text-gray-400 px-3 py-2 rounded-lg transition-all duration-200"
                     >
                       {copiedField === `report-${report.id}` ? (
                         <CheckCircle className="w-4 h-4 text-green-400" />
@@ -484,17 +498,6 @@ export function ReportHistory() {
                         <Copy className="w-4 h-4" />
                       )}
                       <span>Copy</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        shareReport(report);
-                      }}
-                      className="flex items-center space-x-2 text-slate-400 hover:text-slate-300 transition-colors"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      <span>Share</span>
                     </button>
                   </div>
                 </div>
@@ -517,8 +520,8 @@ export function ReportHistory() {
       {/* Report Detail Modal */}
       {selectedReport && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-600 max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-slate-600">
+          <div className="bg-[#0f1419] border border-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-800">
               <div className="flex items-center space-x-3">
                 {getStatusIcon(selectedReport.status)}
                 <h3 className="text-xl font-semibold text-white">{selectedReport.title}</h3>
@@ -526,14 +529,14 @@ export function ReportHistory() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => exportReport(selectedReport, 'markdown')}
-                  className="text-slate-400 hover:text-white transition-colors p-2"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                   title="Export as Markdown"
                 >
                   <Download className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => copyToClipboard(selectedReport.markdown, 'modal')}
-                  className="text-slate-400 hover:text-white transition-colors p-2"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                   title="Copy to clipboard"
                 >
                   {copiedField === 'modal' ? (
@@ -544,7 +547,7 @@ export function ReportHistory() {
                 </button>
                 <button
                   onClick={() => setSelectedReport(null)}
-                  className="text-slate-400 hover:text-white transition-colors p-2"
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200"
                 >
                   <XCircle className="w-6 h-6" />
                 </button>
@@ -553,7 +556,7 @@ export function ReportHistory() {
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               <div className="prose prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-slate-300 leading-relaxed">
+                <div className="whitespace-pre-wrap text-gray-300 leading-relaxed">
                   {selectedReport.markdown}
                 </div>
               </div>
