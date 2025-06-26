@@ -54,9 +54,11 @@ export function ProjectConfig() {
   });
 
   useEffect(() => {
-    fetchProjects();
-    checkEncryptionKey();
-  }, []);
+    if (user) {
+      fetchProjects();
+      checkEncryptionKey();
+    }
+  }, [user]);
 
   const checkEncryptionKey = async () => {
     // In a real implementation, you might check if the user has set up encryption
@@ -83,11 +85,16 @@ export function ProjectConfig() {
   };
 
   const fetchProjects = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, created_at')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -137,6 +144,11 @@ export function ProjectConfig() {
       return;
     }
 
+    if (!user?.id) {
+      alert('User not authenticated');
+      return;
+    }
+
     try {
       let projectId: string;
 
@@ -157,7 +169,7 @@ export function ProjectConfig() {
         const { data, error } = await supabase
           .from('projects')
           .insert({
-            user_id: user!.id,
+            user_id: user.id,
             name: formData.name,
           })
           .select()
