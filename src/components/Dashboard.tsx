@@ -24,10 +24,14 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (user) {
+      fetchStats();
+    }
+  }, [user]);
 
   const fetchStats = async () => {
+    if (!user) return;
+    
     try {
       const { data: reports, error } = await supabase
         .from('reports')
@@ -36,7 +40,7 @@ export function Dashboard() {
           status,
           projects!inner(user_id)
         `)
-        .eq('projects.user_id', user?.id);
+        .eq('projects.user_id', user.id);
 
       if (error) throw error;
 
