@@ -19,6 +19,9 @@ import {
   BarChart3,
   Activity
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 
@@ -263,60 +266,6 @@ export function ReportHistory() {
     } else {
       copyToClipboard(window.location.href, 'share');
     }
-  };
-
-  // Enhanced markdown rendering with proper formatting
-  const renderMarkdown = (markdown: string) => {
-    return (
-      <div className="prose prose-invert max-w-none">
-        <div 
-          className="whitespace-pre-wrap text-gray-300 leading-relaxed"
-          style={{
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
-          }}
-        >
-          {markdown.split('\n').map((line, index) => {
-            // Handle headers
-            if (line.startsWith('# ')) {
-              return <h1 key={index} className="text-2xl font-bold text-white mt-6 mb-4">{line.substring(2)}</h1>;
-            }
-            if (line.startsWith('## ')) {
-              return <h2 key={index} className="text-xl font-semibold text-white mt-5 mb-3">{line.substring(3)}</h2>;
-            }
-            if (line.startsWith('### ')) {
-              return <h3 key={index} className="text-lg font-medium text-white mt-4 mb-2">{line.substring(4)}</h3>;
-            }
-            
-            // Handle bold text
-            const boldText = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
-            
-            // Handle code blocks
-            if (line.startsWith('```')) {
-              return <div key={index} className="bg-gray-900 border border-gray-700 rounded p-3 my-2 font-mono text-sm"></div>;
-            }
-            
-            // Handle list items
-            if (line.startsWith('- ') || line.startsWith('* ')) {
-              return (
-                <div key={index} className="flex items-start space-x-2 my-1">
-                  <span className="text-blue-400 mt-2">•</span>
-                  <span dangerouslySetInnerHTML={{ __html: boldText.substring(2) }} />
-                </div>
-              );
-            }
-            
-            // Regular paragraphs
-            if (line.trim()) {
-              return (
-                <p key={index} className="my-2" dangerouslySetInnerHTML={{ __html: boldText }} />
-              );
-            }
-            
-            return <br key={index} />;
-          })}
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
@@ -571,7 +520,7 @@ export function ReportHistory() {
         </div>
       )}
 
-      {/* Report Detail Modal */}
+      {/* Report Detail Modal with Secure Markdown Rendering */}
       {selectedReport && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#0f1419] border border-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -609,7 +558,37 @@ export function ReportHistory() {
             </div>
             
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {renderMarkdown(selectedReport.markdown)}
+              <div className="prose prose-invert max-w-none">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeSanitize]}
+                  className="text-gray-300 leading-relaxed"
+                  components={{
+                    h1: ({ children }) => <h1 className="text-2xl font-bold text-white mt-6 mb-4">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-xl font-semibold text-white mt-5 mb-3">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-lg font-medium text-white mt-4 mb-2">{children}</h3>,
+                    p: ({ children }) => <p className="my-2 text-gray-300">{children}</p>,
+                    strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                    code: ({ children }) => <code className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-blue-300 text-sm">{children}</code>,
+                    pre: ({ children }) => <pre className="bg-gray-900 border border-gray-700 rounded-lg p-4 my-4 overflow-x-auto">{children}</pre>,
+                    ul: ({ children }) => <ul className="my-2 space-y-1">{children}</ul>,
+                    ol: ({ children }) => <ol className="my-2 space-y-1 list-decimal list-inside">{children}</ol>,
+                    li: ({ children }) => (
+                      <li className="flex items-start space-x-2">
+                        <span className="text-blue-400 mt-2">•</span>
+                        <span>{children}</span>
+                      </li>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-4 border-blue-500 bg-blue-500/10 pl-4 py-2 my-4 italic">
+                        {children}
+                      </blockquote>
+                    ),
+                  }}
+                >
+                  {selectedReport.markdown}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         </div>

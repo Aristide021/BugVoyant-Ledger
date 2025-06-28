@@ -5,6 +5,7 @@ import algosdk from 'algosdk';
 import { monitoring } from '../../src/lib/monitoring';
 import { resilience, RETRY_CONFIGS, CIRCUIT_BREAKER_CONFIGS } from '../../src/lib/resilience';
 import { security, DEFAULT_SECURITY_CONFIG } from '../../src/lib/security';
+import { slackService } from '../../src/lib/slack';
 
 // Environment variables
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
@@ -63,6 +64,7 @@ interface Project {
   id: string;
   name: string;
   user_id: string;
+  slack_webhook_url?: string;
 }
 
 interface AIProvider {
@@ -521,6 +523,7 @@ async function processIncident(
   let audioUrl: string | null = null;
   let usedProvider = '';
   let totalCostCents = 0;
+  let processingStartTime = Date.now();
 
   try {
     console.log(`Processing incident ${issue.id} for project ${project.id}, report ${reportId}`);
@@ -643,10 +646,10 @@ async function processIncident(
       console.error('Error updating report', reportId, ':', updateError);
     }
     
-    // Step 5: Send notifications
+    // Step 5: Send enhanced Slack notifications
     monitoring.startStep(reportId, 'send_notifications');
     try {
-      await sendSlackNotification(project, issue, markdown, algorandTx, audioUrl, usedProvider);
+      await sendSlackNotification(project, issue, markdown, algorandTx, audioUrl, usedProvider, finalStatus, totalCostCents, Date.now() - processingStartTime);
       monitoring.completeStep(reportId, 'send_notifications', 'slack');
       console.log('Slack notification sent for report', reportId);
     } catch (error) {
@@ -672,7 +675,8 @@ async function processIncident(
         projectId: project.id,
         requestId,
         costCents: totalCostCents,
-        providerUsed: usedProvider
+        providerUsed: usedProvider,
+        processingTimeMs: Date.now() - processingStartTime
       }
     );
     
@@ -723,7 +727,8 @@ async function processIncident(
         userId: project.user_id,
         projectId: project.id,
         requestId,
-        costCents: totalCostCents
+        costCents: totalCostCents,
+        processingTimeMs: Date.now() - processingStartTime
       }
     );
   }
@@ -921,17 +926,56 @@ async function sendSlackNotification(
   markdown: string,
   algorandTx: string | null,
   audioUrl: string | null,
-  usedProvider: string
+  usedProvider: string,
+  status: string,
+  costCents: number,
+  processingTimeMs: number
 ) {
-  // Mock implementation - would send to actual Slack webhook
-  console.log('Slack notification would be sent with:', {
-    project: project.name,
-    issue: issue.title,
-    provider: usedProvider,
-    hasAudio: !!audioUrl,
-    hasBlockchainProof: !!algorandTx,
-    nodelyPowered: true
-  });
+  // Get Slack webhook URL from encrypted secrets
+  try {
+    const { data: secrets, error } = await supabase
+      .from('encrypted_secrets')
+      .select('encrypted_value')
+      .eq('project_id', project.id)
+      .eq('secret_type', 'slack_webhook_url')
+      .eq('is_active', true)
+      .single();
+
+    if (error || !secrets) {
+      console.log('No Slack webhook configured for project', project.id);
+      return;
+    }
+
+    // In a real implementation, you would decrypt the webhook URL here
+    // For now, we'll use a placeholder
+    const webhookUrl = 'https://hooks.slack.com/services/placeholder';
+
+    const notificationData = {
+      projectName: project.name,
+      issueTitle: issue.title,
+      issueUrl: issue.permalink,
+      reportId: parseInt(issue.id),
+      status,
+      provider: usedProvider,
+      hasAudio: !!audioUrl,
+      hasBlockchainProof: !!algorandTx,
+      algorandTx,
+      audioUrl,
+      processingTime: Math.round(processingTimeMs / 1000),
+      costCents
+    };
+
+    const result = await slackService.sendIncidentNotification(webhookUrl, notificationData);
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Slack notification failed');
+    }
+
+    console.log('✅ Slack notification sent successfully');
+  } catch (error) {
+    console.error('Slack notification error:', error);
+    throw error;
+  }
 }
 
 export { handler };
