@@ -117,7 +117,7 @@ export function useAuth() {
         password: 'wallet_auth_demo'
       });
 
-      if (error && error.message.includes('Invalid login credentials')) {
+      if (error && error.code === 'invalid_credentials') {
         // User doesn't exist, create them
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: mockUser.email,
