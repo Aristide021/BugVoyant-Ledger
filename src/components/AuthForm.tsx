@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet, Info } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet, Info, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { walletService } from '../lib/wallet';
 import { toast } from './Toast';
@@ -17,13 +17,23 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [walletConnecting, setWalletConnecting] = useState(false);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
+  const [oauthEnabled, setOauthEnabled] = useState({ google: false, github: false });
   const { signUp, signIn, signInWithOAuth, signInWithWallet } = useAuth();
 
   useEffect(() => {
     // Check available wallets on component mount
     const wallets = walletService.getAvailableWallets();
     setAvailableWallets(wallets);
+    
+    // Check OAuth provider availability
+    checkOAuthProviders();
   }, []);
+
+  const checkOAuthProviders = async () => {
+    // For now, we'll disable OAuth providers until they're properly configured
+    // You can enable these once you've set up the providers in Supabase
+    setOauthEnabled({ google: false, github: false });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +61,11 @@ export function AuthForm({ onBack }: AuthFormProps) {
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
+    if (!oauthEnabled[provider]) {
+      toast.error('Provider not available', `${provider} sign-in is not configured yet. Please use email/password or wallet authentication.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -125,26 +140,50 @@ export function AuthForm({ onBack }: AuthFormProps) {
             <p className="text-gray-400">Transform incidents into insights</p>
           </div>
 
-          {/* SSO Options */}
-          <div className="space-y-3 mb-6">
-            <button
-              onClick={() => handleOAuthSignIn('google')}
-              disabled={loading || walletConnecting}
-              className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
-            >
-              <Chrome className="w-5 h-5" />
-              <span>Continue with Google</span>
-            </button>
+          {/* OAuth Configuration Notice */}
+          {(!oauthEnabled.google && !oauthEnabled.github) && (
+            <div className="mb-6 p-4 bg-orange-600/10 border border-orange-600/20 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-orange-400 font-medium mb-1">OAuth Setup Required</h4>
+                  <p className="text-gray-400 text-sm">
+                    To enable Google and GitHub sign-in, configure OAuth providers in your Supabase dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-            <button
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={loading || walletConnecting}
-              className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
-            >
-              <Github className="w-5 h-5" />
-              <span>Continue with GitHub</span>
-            </button>
+          {/* SSO Options - Only show if enabled */}
+          {(oauthEnabled.google || oauthEnabled.github) && (
+            <div className="space-y-3 mb-6">
+              {oauthEnabled.google && (
+                <button
+                  onClick={() => handleOAuthSignIn('google')}
+                  disabled={loading || walletConnecting}
+                  className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+                >
+                  <Chrome className="w-5 h-5" />
+                  <span>Continue with Google</span>
+                </button>
+              )}
 
+              {oauthEnabled.github && (
+                <button
+                  onClick={() => handleOAuthSignIn('github')}
+                  disabled={loading || walletConnecting}
+                  className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
+                >
+                  <Github className="w-5 h-5" />
+                  <span>Continue with GitHub</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Wallet Authentication */}
+          <div className="mb-6">
             <button
               onClick={handleWalletSignIn}
               disabled={loading || walletConnecting}
@@ -261,6 +300,25 @@ export function AuthForm({ onBack }: AuthFormProps) {
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
+          </div>
+
+          {/* OAuth Setup Instructions */}
+          <div className="mt-6 p-4 bg-blue-600/10 border border-blue-600/20 rounded-xl">
+            <div className="flex items-start space-x-3">
+              <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-blue-400 font-medium mb-1">OAuth Setup Instructions</h4>
+                <p className="text-gray-400 text-sm mb-2">
+                  To enable Google and GitHub sign-in:
+                </p>
+                <ol className="text-gray-400 text-xs space-y-1 list-decimal list-inside">
+                  <li>Go to your Supabase Dashboard → Authentication → Providers</li>
+                  <li>Enable Google and/or GitHub providers</li>
+                  <li>Add your OAuth app credentials from Google Cloud Console / GitHub</li>
+                  <li>Set redirect URL to: <code className="text-blue-300">{window.location.origin}/auth/callback</code></li>
+                </ol>
+              </div>
+            </div>
           </div>
 
           {/* Web3 Notice */}

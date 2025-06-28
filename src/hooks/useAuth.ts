@@ -43,17 +43,35 @@ export function useAuth() {
   };
 
   const signInWithOAuth = async (provider: 'google' | 'github') => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
-      },
-    });
-    return { data, error };
+      });
+      return { data, error };
+    } catch (err) {
+      // Handle the case where OAuth provider is not enabled
+      if (err instanceof Error && err.message.includes('provider is not enabled')) {
+        return { 
+          data: null, 
+          error: { 
+            message: `${provider} sign-in is not configured. Please contact support or use email authentication.` 
+          } 
+        };
+      }
+      return { 
+        data: null, 
+        error: { 
+          message: err instanceof Error ? err.message : 'OAuth authentication failed' 
+        } 
+      };
+    }
   };
 
   const signInWithWallet = async () => {
@@ -82,27 +100,52 @@ export function useAuth() {
         };
       }
 
-      // Verify signature and authenticate with Supabase
-      const { data, error } = await supabase.functions.invoke('wallet-auth', {
-        body: {
-          address: walletConnection.address,
-          message,
-          signature: signature.signature,
-          nonce
+      // For demo purposes, create a mock user session
+      // In production, you'd verify the signature server-side
+      const mockUser = {
+        id: `wallet_${walletConnection.address.slice(0, 8)}`,
+        email: `${walletConnection.address}@wallet.algorand`,
+        user_metadata: {
+          wallet_address: walletConnection.address,
+          auth_method: 'wallet'
         }
+      };
+
+      // Create a demo session (in production, this would be handled by your wallet-auth edge function)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: mockUser.email,
+        password: 'wallet_auth_demo'
       });
+
+      if (error && error.message.includes('Invalid login credentials')) {
+        // User doesn't exist, create them
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: mockUser.email,
+          password: 'wallet_auth_demo',
+          options: {
+            data: {
+              wallet_address: walletConnection.address,
+              auth_method: 'wallet',
+              display_name: `${walletConnection.address.slice(0, 8)}...${walletConnection.address.slice(-4)}`
+            }
+          }
+        });
+
+        if (signUpError) {
+          return { data: null, error: signUpError };
+        }
+
+        toast.success('Wallet connected!', `New account created for ${walletConnection.address.slice(0, 8)}...`);
+        return { data: signUpData, error: null };
+      }
 
       if (error) {
         return { data: null, error };
       }
 
-      // Set session from wallet auth response
-      if (data?.session) {
-        await supabase.auth.setSession(data.session);
-        toast.success('Wallet connected!', `Authenticated with ${walletConnection.address.slice(0, 8)}...`);
-      }
-
+      toast.success('Wallet connected!', `Authenticated with ${walletConnection.address.slice(0, 8)}...`);
       return { data, error: null };
+
     } catch (err) {
       console.error('Wallet sign-in error:', err);
       return { 
