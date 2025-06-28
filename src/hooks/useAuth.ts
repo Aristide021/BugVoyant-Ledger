@@ -88,7 +88,8 @@ export function useAuth() {
 
       // Generate sign-in message
       const nonce = Math.random().toString(36).substring(2, 15);
-      const message = `Sign this message to authenticate with BugVoyant-Ledger.\n\nNonce: ${nonce}\nTimestamp: ${Date.now()}`;
+      const timestamp = Date.now();
+      const message = `Sign this message to authenticate with BugVoyant-Ledger.\n\nNonce: ${nonce}\nTimestamp: ${timestamp}`;
       
       // Sign message with wallet
       const signature = await walletService.signMessage(message);
@@ -100,51 +101,70 @@ export function useAuth() {
         };
       }
 
-      // For demo purposes, create a mock user session
-      // In production, you'd verify the signature server-side
-      const mockUser = {
-        id: `wallet_${walletConnection.address.slice(0, 8)}`,
-        email: `${walletConnection.address}@wallet.algorand`,
-        user_metadata: {
-          wallet_address: walletConnection.address,
-          auth_method: 'wallet'
-        }
-      };
-
-      // Create a demo session (in production, this would be handled by your wallet-auth edge function)
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: mockUser.email,
-        password: 'wallet_auth_demo'
+      // Call the wallet-auth edge function
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wallet-auth`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          address: walletConnection.address,
+          message,
+          signature: signature.signature,
+          nonce,
+        }),
       });
 
-      if (error && error.code === 'invalid_credentials') {
-        // User doesn't exist, create them
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: mockUser.email,
-          password: 'wallet_auth_demo',
-          options: {
-            data: {
-              wallet_address: walletConnection.address,
-              auth_method: 'wallet',
-              display_name: `${walletConnection.address.slice(0, 8)}...${walletConnection.address.slice(-4)}`
-            }
-          }
-        });
+      const result = await response.json();
 
-        if (signUpError) {
-          return { data: null, error: signUpError };
-        }
-
-        toast.success('Wallet connected!', `New account created for ${walletConnection.address.slice(0, 8)}...`);
-        return { data: signUpData, error: null };
+      if (!response.ok) {
+        return { 
+          data: null, 
+          error: { message: result.error || 'Wallet authentication failed' } 
+        };
       }
 
-      if (error) {
-        return { data: null, error };
+      if (!result.success) {
+        return { 
+          data: null, 
+          error: { message: result.message || 'Authentication failed' } 
+        };
+      }
+
+      // If the edge function returns a session URL, use it to establish the session
+      if (result.session?.properties?.action_link) {
+        // Extract the session from the magic link
+        const url = new URL(result.session.properties.action_link);
+        const accessToken = url.searchParams.get('access_token');
+        const refreshToken = url.searchParams.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            return { data: null, error: sessionError };
+          }
+
+          toast.success('Wallet connected!', `Authenticated with ${walletConnection.address.slice(0, 8)}...`);
+          return { data: sessionData, error: null };
+        }
+      }
+
+      // Fallback: refresh the session to get the updated user
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        return { data: null, error: sessionError };
       }
 
       toast.success('Wallet connected!', `Authenticated with ${walletConnection.address.slice(0, 8)}...`);
-      return { data, error: null };
+      return { data: sessionData, error: null };
 
     } catch (err) {
       console.error('Wallet sign-in error:', err);
