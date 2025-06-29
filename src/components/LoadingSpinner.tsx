@@ -7,7 +7,7 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-export function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpinnerProps) {
+function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpinnerProps) {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -27,7 +27,7 @@ export function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpi
 }
 
 // Inline loading component for buttons
-export function ButtonSpinner({ className = '' }: { className?: string }) {
+function ButtonSpinner({ className = '' }: { className?: string }) {
   return (
     <Loader2 className={`w-4 h-4 animate-spin ${className}`} />
   );
