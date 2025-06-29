@@ -21,7 +21,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Enhanced error handling
-const handleSupabaseError = (error: any) => {
+export const handleSupabaseError = (error: any) => {
   console.error('Supabase error:', error);
   
   if (error?.code === 'PGRST301') {
@@ -44,7 +44,7 @@ const handleSupabaseError = (error: any) => {
 };
 
 // Database types with enhanced security fields
-type Database = {
+export type Database = {
   public: {
     Tables: {
       projects: {
