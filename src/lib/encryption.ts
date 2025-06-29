@@ -1,14 +1,14 @@
 import { supabase } from './supabase';
 
-// Client-side encryption utilities with enhanced security
+// Enhanced client-side encryption with improved security
 export class EncryptionService {
   private static instance: EncryptionService;
   private encryptionKey: string | null = null;
   private keyExpiryTime: number | null = null;
-  private readonly KEY_EXPIRY_HOURS = 24; // 24 hour session expiry
+  private readonly KEY_EXPIRY_HOURS = 8; // Reduced from 24 to 8 hours for better security
 
   private constructor() {
-    this.loadPersistedKey();
+    // Don't auto-load key on construction for better security
   }
 
   static getInstance(): EncryptionService {
@@ -18,27 +18,94 @@ export class EncryptionService {
     return EncryptionService.instance;
   }
 
-  // Load encryption key from sessionStorage with expiry check
+  // SECURITY IMPROVEMENT: Generate key from user password using PBKDF2
+  async generateEncryptionKeyFromPassword(password: string, salt?: string): Promise<string> {
+    // Generate salt if not provided
+    if (!salt) {
+      const saltArray = new Uint8Array(16);
+      crypto.getRandomValues(saltArray);
+      salt = Array.from(saltArray, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Use PBKDF2 to derive key from password
+    const encoder = new TextEncoder();
+    const passwordBuffer = encoder.encode(password);
+    const saltBuffer = encoder.encode(salt);
+
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      passwordBuffer,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
+
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: saltBuffer,
+        iterations: 100000, // High iteration count for security
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      256 // 256 bits = 32 bytes
+    );
+
+    const key = Array.from(new Uint8Array(derivedBits), byte => 
+      byte.toString(16).padStart(2, '0')
+    ).join('');
+
+    // Set expiry time
+    const expiry = Date.now() + (this.KEY_EXPIRY_HOURS * 60 * 60 * 1000);
+    
+    this.encryptionKey = key;
+    this.keyExpiryTime = expiry;
+
+    // Store in sessionStorage with expiry (still vulnerable to XSS but better than localStorage)
+    try {
+      sessionStorage.setItem('encryption_key_data', JSON.stringify({
+        key,
+        expiry,
+        salt // Store salt for future key derivation
+      }));
+    } catch (error) {
+      console.warn('Failed to persist encryption key:', error);
+    }
+
+    return key;
+  }
+
+  // SECURITY IMPROVEMENT: Option to keep key only in memory
+  setEncryptionKeyInMemoryOnly(key: string): void {
+    const expiry = Date.now() + (this.KEY_EXPIRY_HOURS * 60 * 60 * 1000);
+    this.encryptionKey = key;
+    this.keyExpiryTime = expiry;
+    
+    // Explicitly don't store in sessionStorage for maximum security
+    console.log('🔒 Encryption key set in memory only (maximum security mode)');
+  }
+
+  // Load encryption key from sessionStorage with enhanced validation
   private loadPersistedKey(): void {
     try {
       const keyData = sessionStorage.getItem('encryption_key_data');
       if (keyData) {
-        const { key, expiry } = JSON.parse(keyData);
-        if (Date.now() < expiry) {
+        const { key, expiry, salt } = JSON.parse(keyData);
+        if (Date.now() < expiry && key && key.length === 64) { // Validate key format
           this.encryptionKey = key;
           this.keyExpiryTime = expiry;
         } else {
-          // Key expired, remove it
-          sessionStorage.removeItem('encryption_key_data');
+          // Key expired or invalid, remove it
+          this.clearKey();
         }
       }
     } catch (error) {
       console.warn('Failed to load persisted encryption key:', error);
-      sessionStorage.removeItem('encryption_key_data');
+      this.clearKey();
     }
   }
 
-  // Generate a secure encryption key for the user session
+  // Generate a secure encryption key for the user session (fallback method)
   async generateEncryptionKey(): Promise<string> {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
@@ -81,20 +148,37 @@ export class EncryptionService {
 
   // Check if encryption key is valid and not expired
   isKeyValid(): boolean {
+    if (!this.encryptionKey || !this.keyExpiryTime) {
+      this.loadPersistedKey(); // Try to load from storage
+    }
+    
     return !!(this.encryptionKey && 
              this.keyExpiryTime && 
              Date.now() < this.keyExpiryTime);
   }
 
-  // Clear encryption key
+  // Clear encryption key with secure cleanup
   clearKey(): void {
+    // Overwrite key in memory before clearing
+    if (this.encryptionKey) {
+      this.encryptionKey = '0'.repeat(this.encryptionKey.length);
+    }
+    
     this.encryptionKey = null;
     this.keyExpiryTime = null;
+    
     try {
       sessionStorage.removeItem('encryption_key_data');
     } catch (error) {
       console.warn('Failed to clear encryption key:', error);
     }
+  }
+
+  // Get remaining key lifetime in minutes
+  getKeyLifetimeMinutes(): number {
+    if (!this.keyExpiryTime) return 0;
+    const remaining = this.keyExpiryTime - Date.now();
+    return Math.max(0, Math.floor(remaining / (60 * 1000)));
   }
 
   // Store encrypted secret

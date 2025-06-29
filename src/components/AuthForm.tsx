@@ -30,9 +30,14 @@ export function AuthForm({ onBack }: AuthFormProps) {
   }, []);
 
   const checkOAuthProviders = async () => {
-    // For now, we'll disable OAuth providers until they're properly configured
-    // You can enable these once you've set up the providers in Supabase
-    setOauthEnabled({ google: false, github: false });
+    // Check OAuth providers from environment variables
+    const googleEnabled = import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true';
+    const githubEnabled = import.meta.env.VITE_OAUTH_GITHUB_ENABLED === 'true';
+    
+    setOauthEnabled({ 
+      google: googleEnabled, 
+      github: githubEnabled 
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

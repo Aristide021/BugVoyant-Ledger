@@ -18,6 +18,7 @@ const ELEVEN_API_KEY = process.env.ELEVEN_API_KEY!;
 const ALGORAND_TOKEN = process.env.ALGORAND_TOKEN!;
 const ALGORAND_SERVER = process.env.ALGORAND_SERVER || 'https://testnet-api.4160.nodely.io';
 const ALGORAND_MNEMONIC = process.env.ALGORAND_MNEMONIC!;
+const ENCRYPTION_MASTER_KEY = process.env.ENCRYPTION_MASTER_KEY!;
 
 // Initialize Supabase client
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -916,24 +917,19 @@ async function sendSlackNotification(
   costCents: number,
   processingTimeMs: number
 ) {
-  // Get Slack webhook URL from encrypted secrets
+  // SECURITY FIX: Get and decrypt Slack webhook URL from encrypted secrets
   try {
-    const { data: secrets, error } = await supabase
-      .from('encrypted_secrets')
-      .select('encrypted_value')
-      .eq('project_id', project.id)
-      .eq('secret_type', 'slack_webhook_url')
-      .eq('is_active', true)
-      .single();
+    // Get decrypted webhook URL using the server-side master key
+    const { data: webhookUrl, error } = await supabase.rpc('get_decrypted_secret', {
+      p_project_id: project.id,
+      p_secret_type: 'slack_webhook_url',
+      p_encryption_key: ENCRYPTION_MASTER_KEY
+    });
 
-    if (error || !secrets) {
+    if (error || !webhookUrl) {
       console.log('No Slack webhook configured for project', project.id);
       return;
     }
-
-    // In a real implementation, you would decrypt the webhook URL here
-    // For now, we'll use a placeholder
-    const webhookUrl = 'https://hooks.slack.com/services/placeholder';
 
     const notificationData = {
       projectName: project.name,

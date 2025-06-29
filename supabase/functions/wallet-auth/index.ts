@@ -15,6 +15,9 @@ interface WalletAuthRequest {
   nonce: string;
 }
 
+// In-memory nonce store (in production, use Redis or database)
+const usedNonces = new Set<string>();
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -44,8 +47,8 @@ serve(async (req) => {
       );
     }
 
-    // Enhanced signature verification
-    const isValidSignature = await verifyAlgorandSignature(address, message, signature);
+    // CRITICAL FIX: Full cryptographic signature verification
+    const isValidSignature = await verifyAlgorandSignature(address, message, signature, nonce);
     
     if (!isValidSignature) {
       return new Response(
@@ -175,22 +178,29 @@ serve(async (req) => {
 async function verifyAlgorandSignature(
   address: string,
   message: string,
-  signature: string
+  signature: string,
+  nonce: string
 ): Promise<boolean> {
   try {
-    // Validate address format
+    // 1. Validate address format
     if (!algosdk.isValidAddress(address)) {
       console.error('Invalid Algorand address format');
       return false;
     }
 
-    // Check message contains expected content and nonce
-    if (!message.includes('BugVoyant-Ledger') || !message.includes('Nonce:')) {
-      console.error('Message does not contain required content');
+    // 2. Check nonce for replay attack prevention
+    if (usedNonces.has(nonce)) {
+      console.error('Nonce already used - replay attack detected');
       return false;
     }
 
-    // Extract and validate timestamp (prevent replay attacks)
+    // 3. Validate message format and content
+    if (!message.includes('BugVoyant-Ledger') || !message.includes('Nonce:') || !message.includes(nonce)) {
+      console.error('Message does not contain required content or nonce');
+      return false;
+    }
+
+    // 4. Extract and validate timestamp (prevent replay attacks)
     const timestampMatch = message.match(/Timestamp: (\d+)/);
     if (!timestampMatch) {
       console.error('Message does not contain timestamp');
@@ -206,9 +216,10 @@ async function verifyAlgorandSignature(
       return false;
     }
 
-    // Validate signature format (base64)
+    // 5. Validate signature format (base64)
+    let signatureBuffer: Uint8Array;
     try {
-      const signatureBuffer = Buffer.from(signature, 'base64');
+      signatureBuffer = new Uint8Array(Buffer.from(signature, 'base64'));
       if (signatureBuffer.length === 0) {
         console.error('Invalid signature format');
         return false;
@@ -218,10 +229,40 @@ async function verifyAlgorandSignature(
       return false;
     }
 
-    // Enhanced signature verification with Nodely integration
-    // For production, implement full cryptographic verification
-    console.log('Signature validation passed enhanced checks for address:', address);
-    return true;
+    // 6. CRITICAL: Perform actual cryptographic verification
+    try {
+      // Convert message to bytes for verification
+      const messageBytes = new TextEncoder().encode(message);
+      
+      // Convert Algorand address to public key
+      const publicKey = algosdk.decodeAddress(address).publicKey;
+      
+      // Verify the signature cryptographically
+      const isValid = algosdk.verifyBytes(messageBytes, signatureBuffer, publicKey);
+      
+      if (!isValid) {
+        console.error('Cryptographic signature verification failed');
+        return false;
+      }
+
+      // 7. Mark nonce as used (prevent replay attacks)
+      usedNonces.add(nonce);
+      
+      // Clean up old nonces periodically (keep last 1000)
+      if (usedNonces.size > 1000) {
+        const noncesArray = Array.from(usedNonces);
+        usedNonces.clear();
+        // Keep the most recent 500 nonces
+        noncesArray.slice(-500).forEach(n => usedNonces.add(n));
+      }
+
+      console.log('✅ Full cryptographic signature verification passed for address:', address);
+      return true;
+
+    } catch (error) {
+      console.error('Cryptographic verification error:', error);
+      return false;
+    }
 
   } catch (error) {
     console.error('Signature verification error:', error);

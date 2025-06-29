@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { encryptionService } from '../lib/encryption';
+import { EncryptionSetup } from './EncryptionSetup';
 
 interface Project {
   id: string;
@@ -291,41 +292,12 @@ export function ProjectConfig() {
     <div className="space-y-6">
       {/* Encryption Setup Modal */}
       {showEncryptionSetup && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#0f1419] border border-gray-800 rounded-2xl max-w-md w-full p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center">
-                <Shield className="w-6 h-6 text-blue-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Security Setup Required</h3>
-            </div>
-            
-            <p className="text-gray-400 mb-6">
-              To securely store your API keys and tokens, we need to set up client-side encryption. 
-              This ensures your sensitive data is encrypted before being stored in the database.
-            </p>
-            
-            <div className="bg-blue-600/10 border border-blue-600/20 rounded-xl p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <HelpCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="text-blue-400 font-medium mb-1">Enhanced Security</h4>
-                  <p className="text-gray-400 text-sm">
-                    Your encryption key is now stored securely in sessionStorage with 24-hour expiry. 
-                    All sensitive data is encrypted client-side before being sent to our servers.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <button
-              onClick={setupEncryption}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200"
-            >
-              Set Up Encryption
-            </button>
-          </div>
-        </div>
+        <EncryptionSetup 
+          onComplete={() => {
+            setEncryptionKeySet(true);
+            setShowEncryptionSetup(false);
+          }}
+        />
       )}
 
       {/* Header */}
@@ -659,7 +631,7 @@ export function ProjectConfig() {
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <div className="text-green-400 font-medium">🔗 API Token Active</div>
-                    <p className="text-gray-400 text-xs mt-1">Token: 98D9CE80660AD243893D56D9F125CD2D</p>
+                    <p className="text-gray-400 text-xs mt-1">Token: ****...CD2D (configured)</p>
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <div className="text-green-400 font-medium">🌐 Testnet Ready</div>
@@ -681,7 +653,7 @@ export function ProjectConfig() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <code className="text-green-300">ALGORAND_TOKEN</code>
-                    <p className="text-green-400 text-xs mt-1">✅ Configured: 98D9CE80660AD243893D56D9F125CD2D</p>
+                    <p className="text-green-400 text-xs mt-1">✅ Configured (server-side only)</p>
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <code className="text-green-300">ALGORAND_SERVER</code>
