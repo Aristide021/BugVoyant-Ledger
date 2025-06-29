@@ -455,14 +455,14 @@ export function ReportHistory() {
                     
                     {report.algorand_tx && (
                       <a
-                        href={`https://explorer.algorand.org/transaction/${report.algorand_tx}`}
+                        href={`https://testnet.explorer.algorand.org/transaction/${report.algorand_tx}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center space-x-2 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-2 rounded-lg transition-all duration-200"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        <span>Blockchain Proof</span>
+                        <span>Nodely Blockchain Proof</span>
                       </a>
                     )}
                     

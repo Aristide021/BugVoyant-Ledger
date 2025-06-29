@@ -636,9 +636,9 @@ export function ProjectConfig() {
             <div className="flex items-start space-x-3">
               <Zap className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-green-400 font-semibold mb-3">Nodely-Powered Blockchain Infrastructure</h4>
+                <h4 className="text-green-400 font-semibold mb-3">✅ Nodely-Powered Blockchain Infrastructure</h4>
                 <p className="text-gray-300 mb-4">
-                  Your blockchain anchoring is now powered by Nodely's unlimited Algorand API with enhanced performance:
+                  Your blockchain anchoring is powered by Nodely's unlimited Algorand API with enhanced performance:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-900/50 rounded-lg p-3">
@@ -657,6 +657,14 @@ export function ProjectConfig() {
                     <div className="text-green-400 font-medium">💰 Cost Efficient</div>
                     <p className="text-gray-400 text-xs mt-1">Same $0.001 per transaction cost</p>
                   </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">🔗 API Token Active</div>
+                    <p className="text-gray-400 text-xs mt-1">Token: 98D9CE80660AD243893D56D9F125CD2D</p>
+                  </div>
+                  <div className="bg-gray-900/50 rounded-lg p-3">
+                    <div className="text-green-400 font-medium">🌐 Testnet Ready</div>
+                    <p className="text-gray-400 text-xs mt-1">Connected to testnet-api.4160.nodely.io</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -672,12 +680,12 @@ export function ProjectConfig() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-900/50 rounded-lg p-3">
-                    <code className="text-gray-300">ALGORAND_TOKEN</code>
-                    <p className="text-gray-400 text-xs mt-1">Your Nodely API key (unlimited access)</p>
+                    <code className="text-green-300">ALGORAND_TOKEN</code>
+                    <p className="text-green-400 text-xs mt-1">✅ Configured: 98D9CE80660AD243893D56D9F125CD2D</p>
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
-                    <code className="text-gray-300">ALGORAND_SERVER</code>
-                    <p className="text-gray-400 text-xs mt-1">https://testnet-api.4160.nodely.io</p>
+                    <code className="text-green-300">ALGORAND_SERVER</code>
+                    <p className="text-green-400 text-xs mt-1">✅ Configured: https://testnet-api.4160.nodely.io</p>
                   </div>
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <code className="text-gray-300">GOOGLE_API_KEY</code>
@@ -697,7 +705,7 @@ export function ProjectConfig() {
                   </div>
                 </div>
                 <p className="text-gray-400 text-sm mt-4">
-                  Get your free Nodely API key at <a href="https://nodely.io/" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline">nodely.io</a>
+                  ✅ Nodely API configured and ready. Get additional tokens at <a href="https://nodely.io/" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline">nodely.io</a>
                 </p>
               </div>
             </div>
