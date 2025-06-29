@@ -17,28 +17,13 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [walletConnecting, setWalletConnecting] = useState(false);
   const [availableWallets, setAvailableWallets] = useState<string[]>([]);
-  const [oauthEnabled, setOauthEnabled] = useState({ google: false, github: false });
   const { signUp, signIn, signInWithOAuth, signInWithWallet } = useAuth();
 
   useEffect(() => {
     // Check available wallets on component mount
     const wallets = walletService.getAvailableWallets();
     setAvailableWallets(wallets);
-    
-    // Check OAuth provider availability
-    checkOAuthProviders();
   }, []);
-
-  const checkOAuthProviders = async () => {
-    // Check OAuth providers from environment variables
-    const googleEnabled = import.meta.env.VITE_OAUTH_GOOGLE_ENABLED === 'true';
-    const githubEnabled = import.meta.env.VITE_OAUTH_GITHUB_ENABLED === 'true';
-    
-    setOauthEnabled({ 
-      google: googleEnabled, 
-      github: githubEnabled 
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,11 +51,6 @@ export function AuthForm({ onBack }: AuthFormProps) {
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
-    if (!oauthEnabled[provider]) {
-      toast.error('Provider not available', `${provider} sign-in is not configured yet. Please use email/password or wallet authentication.`);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -145,47 +125,26 @@ export function AuthForm({ onBack }: AuthFormProps) {
             <p className="text-gray-400">Transform incidents into insights</p>
           </div>
 
-          {/* OAuth Configuration Notice */}
-          {(!oauthEnabled.google && !oauthEnabled.github) && (
-            <div className="mb-6 p-4 bg-orange-600/10 border border-orange-600/20 rounded-xl">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="text-orange-400 font-medium mb-1">OAuth Setup Required</h4>
-                  <p className="text-gray-400 text-sm">
-                    To enable Google and GitHub sign-in, configure OAuth providers in your Supabase dashboard.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* SSO Options */}
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={() => handleOAuthSignIn('google')}
+              disabled={loading || walletConnecting}
+              className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+            >
+              <Chrome className="w-5 h-5" />
+              <span>Continue with Google</span>
+            </button>
 
-          {/* SSO Options - Only show if enabled */}
-          {(oauthEnabled.google || oauthEnabled.github) && (
-            <div className="space-y-3 mb-6">
-              {oauthEnabled.google && (
-                <button
-                  onClick={() => handleOAuthSignIn('google')}
-                  disabled={loading || walletConnecting}
-                  className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
-                >
-                  <Chrome className="w-5 h-5" />
-                  <span>Continue with Google</span>
-                </button>
-              )}
-
-              {oauthEnabled.github && (
-                <button
-                  onClick={() => handleOAuthSignIn('github')}
-                  disabled={loading || walletConnecting}
-                  className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
-                >
-                  <Github className="w-5 h-5" />
-                  <span>Continue with GitHub</span>
-                </button>
-              )}
-            </div>
-          )}
+            <button
+              onClick={() => handleOAuthSignIn('github')}
+              disabled={loading || walletConnecting}
+              className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
+            >
+              <Github className="w-5 h-5" />
+              <span>Continue with GitHub</span>
+            </button>
+          </div>
 
           {/* Wallet Authentication */}
           <div className="mb-6">
