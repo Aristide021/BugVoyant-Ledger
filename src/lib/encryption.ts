@@ -22,7 +22,7 @@ export class EncryptionService {
   async generateEncryptionKeyFromPassword(password: string, providedSalt?: string): Promise<string> {
     // Generate salt if not provided
     let salt: string;
-    if (!salt) {
+    if (!providedSalt) {
       const saltArray = new Uint8Array(16);
       crypto.getRandomValues(saltArray);
       salt = Array.from(saltArray, byte => byte.toString(16).padStart(2, '0')).join('');
