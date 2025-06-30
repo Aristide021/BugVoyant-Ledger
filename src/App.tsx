@@ -7,13 +7,18 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import { PageLoader } from './components/LoadingSpinner';
 import { AuthCallback } from './components/AuthCallback';
+import { DemoWebhookSimulator } from './components/DemoWebhookSimulator';
+import { DemoReport } from './components/DemoReport';
 
 function App() {
   const { user, loading } = useAuth();
   const [showAuth, setShowAuth] = useState(false);
 
-  // Check if we're on the auth callback route
-  const isAuthCallback = window.location.pathname === '/auth/callback';
+  // Check current route
+  const currentPath = window.location.pathname;
+  const isAuthCallback = currentPath === '/auth/callback';
+  const isDemoSimulator = currentPath === '/demo';
+  const isDemoReport = currentPath === '/demo-report';
 
   if (loading) {
     return <PageLoader text="Initializing BugVoyant-Ledger..." />;
@@ -22,6 +27,29 @@ function App() {
   // Handle OAuth callback
   if (isAuthCallback) {
     return <AuthCallback />;
+  }
+
+  // Handle demo routes
+  if (isDemoSimulator) {
+    return (
+      <ErrorBoundary>
+        <div className="App">
+          <ToastContainer />
+          <DemoWebhookSimulator />
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  if (isDemoReport) {
+    return (
+      <ErrorBoundary>
+        <div className="App">
+          <ToastContainer />
+          <DemoReport />
+        </div>
+      </ErrorBoundary>
+    );
   }
 
   return (

@@ -22,7 +22,7 @@ export class EncryptionService {
   async generateEncryptionKeyFromPassword(password: string, providedSalt?: string): Promise<string> {
     // Generate salt if not provided
     let salt: string;
-    if (!salt) {
+    if (!providedSalt) {
       const saltArray = new Uint8Array(16);
       crypto.getRandomValues(saltArray);
       salt = Array.from(saltArray, byte => byte.toString(16).padStart(2, '0')).join('');
@@ -93,7 +93,7 @@ export class EncryptionService {
     try {
       const keyData = sessionStorage.getItem('encryption_key_data');
       if (keyData) {
-        const { key, expiry, salt } = JSON.parse(keyData);
+        const { key, expiry } = JSON.parse(keyData);
         if (Date.now() < expiry && key && key.length === 64) { // Validate key format
           this.encryptionKey = key;
           this.keyExpiryTime = expiry;
@@ -210,7 +210,7 @@ export class EncryptionService {
         'CREATE',
         'encrypted_secret',
         data,
-        null,
+        undefined,
         { secret_type: secretType }
       );
 
@@ -259,7 +259,7 @@ export class EncryptionService {
   // Rotate API key
   async rotateSecret(
     projectId: string,
-    secretType: string,
+    secretType: 'sentry_auth_token' | 'slack_webhook_url' | 'api_key',
     newSecretValue: string,
     reason: string
   ): Promise<{ success: boolean; error?: string }> {
@@ -269,7 +269,7 @@ export class EncryptionService {
 
     try {
       // Store new secret (this will automatically deactivate the old one)
-      const storeResult = await this.storeSecret(projectId, secretType as any, newSecretValue);
+      const storeResult = await this.storeSecret(projectId, secretType, newSecretValue);
       
       if (!storeResult.success) {
         return storeResult;

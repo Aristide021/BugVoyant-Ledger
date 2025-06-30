@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { toast } from './Toast';
+import { toast } from '../utils/toast';
 import { BoltBadge } from './BoltBadge';
 
 interface AuthFormProps {
@@ -15,7 +15,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signUp, signIn, signInWithOAuth } = useAuth();
+  const { signUp, signIn, signInWithOAuth, oauthProviders } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,34 +91,50 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
           {/* SSO Options */}
           <div className="space-y-3 mb-6">
-            <button
-              onClick={() => handleOAuthSignIn('google')}
-              disabled={loading}
-              className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
-            >
-              <Chrome className="w-5 h-5" />
-              <span>Continue with Google</span>
-            </button>
+            {oauthProviders.google && (
+              <button
+                onClick={() => handleOAuthSignIn('google')}
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
+              >
+                <Chrome className="w-5 h-5" />
+                <span>Continue with Google</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={loading}
-              className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
-            >
-              <Github className="w-5 h-5" />
-              <span>Continue with GitHub</span>
-            </button>
+            {oauthProviders.github && (
+              <button
+                onClick={() => handleOAuthSignIn('github')}
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
+              >
+                <Github className="w-5 h-5" />
+                <span>Continue with GitHub</span>
+              </button>
+            )}
+
+            {/* Show message if no OAuth providers are available */}
+            {!oauthProviders.google && !oauthProviders.github && (
+              <div className="p-3 bg-yellow-600/10 border border-yellow-600/20 rounded-xl">
+                <div className="flex items-center space-x-2">
+                  <Info className="w-4 h-4 text-yellow-400" />
+                  <span className="text-yellow-400 text-sm">OAuth providers not configured. Please use email authentication.</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Divider */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
+          {/* Only show divider if OAuth providers are available */}
+          {(oauthProviders.google || oauthProviders.github) && (
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-700"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[#0f1419] text-gray-400">or continue with email</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[#0f1419] text-gray-400">or continue with email</span>
-            </div>
-          </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

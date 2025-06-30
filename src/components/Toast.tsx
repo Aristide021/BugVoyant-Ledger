@@ -116,6 +116,3 @@ export const ToastContainer: React.FC = () => {
     </div>
   );
 };
-
-// Export toast utilities from separate file to avoid React refresh warning
-export { toast } from '../utils/toast';

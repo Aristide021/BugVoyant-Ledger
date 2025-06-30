@@ -326,7 +326,7 @@ export const RETRY_CONFIGS = {
     backoffMultiplier: 1.5,
     retryableErrors: ['timeout', 'network', 'server error']
   }
-} as const;
+};
 
 // Circuit breaker configurations
 export const CIRCUIT_BREAKER_CONFIGS = {
@@ -345,4 +345,4 @@ export const CIRCUIT_BREAKER_CONFIGS = {
     resetTimeoutMs: 90000, // 1.5 minutes
     monitoringPeriodMs: 300000 // 5 minutes
   }
-} as const;
+};

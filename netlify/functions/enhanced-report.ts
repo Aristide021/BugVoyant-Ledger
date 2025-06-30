@@ -8,7 +8,7 @@ import { security, DEFAULT_SECURITY_CONFIG } from '../../src/lib/security';
 import { slackService } from '../../src/lib/slack';
 
 // Environment variables
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
+const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const SENTRY_WEBHOOK_SECRET = process.env.SENTRY_WEBHOOK_SECRET!;
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY!;
@@ -66,6 +66,7 @@ interface Project {
   name: string;
   user_id: string;
   slack_webhook_url?: string;
+  sentry_org_slug?: string;
 }
 
 interface AIProvider {
@@ -242,7 +243,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     if (event.httpMethod !== 'POST') {
       return {
         statusCode: 405,
-        headers: { 'Allow': 'POST', 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Method not allowed' }),
       };
     }
@@ -265,6 +266,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
       return {
         statusCode: 403,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Forbidden' }),
       };
     }
@@ -274,6 +276,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     if (!signature) {
       return {
         statusCode: 401,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Missing signature' }),
       };
     }
@@ -294,6 +297,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
       return {
         statusCode: 401,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Invalid signature' }),
       };
     }
@@ -304,6 +308,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     if (webhookData.action !== 'created' && webhookData.action !== 'resolved') {
       return {
         statusCode: 200,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: 'Event ignored' }),
       };
     }
@@ -331,6 +336,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
       return {
         statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: contentValidation.error }),
       };
     }
@@ -346,6 +352,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       console.error('Error fetching projects:', projectError);
       return {
         statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Database error' }),
       };
     }
@@ -365,6 +372,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         console.error('No projects configured at all');
         return {
           statusCode: 404,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             error: 'No projects configured',
             details: `No project found for Sentry org '${sentryOrgSlug}'. Please ensure your project's Sentry org slug matches the webhook source.`
@@ -384,6 +392,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       console.warn(`Project org slug mismatch: expected '${project.sentry_org_slug}', got '${sentryOrgSlug}'`);
       return {
         statusCode: 404,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           error: 'Project organization mismatch',
           details: `Webhook from '${sentryOrgSlug}' but project configured for '${project.sentry_org_slug}'`
@@ -406,6 +415,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
       return {
         statusCode: 429,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: rateLimitCheck.error }),
       };
     }
@@ -422,6 +432,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       console.error('Error checking existing report:', existingError);
       return {
         statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Database error checking existing report' }),
       };
     }
@@ -442,7 +453,7 @@ const handler: Handler = async (event: HandlerEvent) => {
           .eq('id', existingReport.id);
 
         if (!updateError) {
-          processIncident(project, issue, existingReport.id, requestId, ipAddress, userAgent).catch(error => {
+          processIncident(project, issue, existingReport.id, requestId).catch(error => {
             console.error('Async processing error:', error);
           });
         }
@@ -479,6 +490,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       console.error('Failed to create/update report:', insertError);
       return {
         statusCode: 500,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Failed to create report' }),
       };
     }
@@ -500,7 +512,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     );
 
     // Process incident asynchronously
-    processIncident(project, issue, report.id, requestId, ipAddress, userAgent).catch(error => {
+    processIncident(project, issue, report.id, requestId).catch(error => {
       console.error('Async processing error:', error);
     });
 
@@ -524,6 +536,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     return {
       statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
@@ -563,9 +576,7 @@ async function processIncident(
   project: Project, 
   issue: SentryWebhookEvent['data']['issue'], 
   reportId: number,
-  requestId: string,
-  _ipAddress: string,
-  _userAgent: string
+  requestId: string
 ) {
   let status: string = 'processing';
   let markdown = '';
@@ -641,7 +652,7 @@ async function processIncident(
         })
         .catch(error => {
           console.error('Blockchain anchoring failed for report', reportId, ':', error);
-          monitoring.failStep(reportId, 'blockchain_anchoring', error.message);
+          monitoring.failStep(reportId, 'blockchain_anchoring', error instanceof Error ? error.message : 'Unknown error');
           status = 'pending_hash';
         })
     );
@@ -670,7 +681,7 @@ async function processIncident(
         })
         .catch(error => {
           console.error('Audio generation failed for report', reportId, ':', error);
-          monitoring.failStep(reportId, 'audio_generation', error.message);
+          monitoring.failStep(reportId, 'audio_generation', error instanceof Error ? error.message : 'Unknown error');
           status = status === 'pending_hash' ? 'partial' : 'text_only';
         })
     );
@@ -703,7 +714,7 @@ async function processIncident(
       monitoring.completeStep(reportId, 'send_notifications', 'slack');
       console.log('Slack notification sent for report', reportId);
     } catch (error) {
-      monitoring.failStep(reportId, 'send_notifications', error.message);
+      monitoring.failStep(reportId, 'send_notifications', error instanceof Error ? error.message : 'Unknown error');
       console.error('Slack notification failed for report', reportId, ':', error);
     }
     
@@ -748,7 +759,7 @@ async function processIncident(
     
     // Record failure metrics
     await monitoring.recordSystemMetric('incident.processing.failure', 1, 'counter', {
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       step: 'unknown'
     });
     
@@ -756,7 +767,7 @@ async function processIncident(
     await supabase
       .from('reports')
       .update({
-        markdown: markdown || `# Processing Failed\n\nAn error occurred while processing this incident:\n\n${error}`,
+        markdown: markdown || `# Processing Failed\n\nAn error occurred while processing this incident:\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
         status: 'failed',
         updated_at: new Date().toISOString()
       })
@@ -770,7 +781,7 @@ async function processIncident(
       { status: 'processing' },
       { 
         status: 'failed',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         total_cost_cents: totalCostCents
       },
       {
@@ -826,11 +837,11 @@ Keep it professional, concise, and actionable. Use proper Markdown formatting wi
         `ai_provider.${provider.name.toLowerCase().replace(/\s+/g, '_')}.failure`,
         1,
         'counter',
-        { error: error.message }
+        { error: error instanceof Error ? error.message : 'Unknown error' }
       );
       
       if (i === aiProviders.length - 1) {
-        throw new Error(`All AI providers failed. Last error from ${provider.name}: ${error}`);
+        throw new Error(`All AI providers failed. Last error from ${provider.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
       console.log(`🔄 Falling back to next provider for report ${reportId}...`);
@@ -847,7 +858,7 @@ async function anchorOnAlgorand(markdown: string, reportId: number): Promise<str
         // Nodely health check
         try {
           const status = await algodClient.status().do();
-          console.log(`✅ Nodely algod OK – last round ${status['last-round']} for report ${reportId}`);
+          console.log(`✅ Nodely algod OK – last round ${status.lastRound} for report ${reportId}`);
         } catch (error) {
           console.warn(`⚠️ Nodely health check failed for report ${reportId}:`, error);
         }
@@ -867,8 +878,8 @@ async function anchorOnAlgorand(markdown: string, reportId: number): Promise<str
         
         // Create transaction
         const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-          from: account.addr,
-          to: account.addr,
+          sender: account.addr,
+          receiver: account.addr,
           amount: 0,
           note: new Uint8Array(Buffer.from(hashHex, 'hex')),
           suggestedParams,
@@ -876,7 +887,8 @@ async function anchorOnAlgorand(markdown: string, reportId: number): Promise<str
 
         // Sign and submit
         const signedTxn = txn.signTxn(account.sk);
-        const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+        const response = await algodClient.sendRawTransaction(signedTxn).do();
+        const txId = response.txid;
         
         // Wait for confirmation
         await algosdk.waitForConfirmation(algodClient, txId, 4);
@@ -944,7 +956,7 @@ async function generateAudioSummary(markdown: string, reportId: number): Promise
         const audioFile = new Uint8Array(audioBuffer);
         
         const fileName = `report_${reportId}_${Date.now()}.mp3`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('audio-summaries')
           .upload(fileName, audioFile, {
             contentType: 'audio/mpeg',
@@ -1004,8 +1016,8 @@ async function sendSlackNotification(
       provider: usedProvider,
       hasAudio: !!audioUrl,
       hasBlockchainProof: !!algorandTx,
-      algorandTx,
-      audioUrl,
+      algorandTx: algorandTx ?? undefined,
+      audioUrl: audioUrl ?? undefined,
       processingTime: Math.round(processingTimeMs / 1000),
       costCents
     };

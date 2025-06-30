@@ -60,32 +60,6 @@ export function ReportHistory() {
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const fetchReports = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
-          *,
-          projects!inner(name, sentry_org_slug, user_id)
-        `)
-        .eq('projects.user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setReports(data || []);
-      calculateStats(data || []);
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
-
   const calculateStats = useCallback((reportsData: Report[]) => {
     const totalReports = reportsData.length;
     const completedReports = reportsData.filter(r => r.status === 'completed').length;
@@ -100,6 +74,31 @@ export function ReportHistory() {
       costSavings
     });
   }, []);
+
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('reports')
+        .select(`
+          *,
+          projects (
+            name,
+            sentry_org_slug
+          )
+        `)
+        .eq('projects.user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setReports(data || []);
+      calculateStats(data || []);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, calculateStats]);
 
   const filterReports = useCallback(() => {
     let filtered = reports;
@@ -248,8 +247,6 @@ export function ReportHistory() {
       console.error('Error copying to clipboard:', error);
     }
   };
-
-
 
   if (loading) {
     return (

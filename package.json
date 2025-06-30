@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@netlify/functions": "^4.1.8",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
