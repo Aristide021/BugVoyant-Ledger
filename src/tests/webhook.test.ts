@@ -71,7 +71,7 @@ describe('Enhanced Report Webhook Handler', () => {
       body: null
     };
 
-    const response = await handler(event as any);
+    const response = await handler(event as Parameters<typeof handler>[0]);
 
     expect(response.statusCode).toBe(405);
     expect(JSON.parse(response.body)).toEqual({ error: 'Method not allowed' });
@@ -84,7 +84,7 @@ describe('Enhanced Report Webhook Handler', () => {
       body: JSON.stringify({ test: 'data' })
     };
 
-    const response = await handler(event as any);
+    const response = await handler(event as Parameters<typeof handler>[0]);
 
     expect(response.statusCode).toBe(401);
     expect(JSON.parse(response.body)).toEqual({ error: 'Missing signature' });
@@ -144,7 +144,7 @@ describe('Enhanced Report Webhook Handler', () => {
       body
     };
 
-    const response = await handler(event as any);
+    const response = await handler(event as Parameters<typeof handler>[0]);
 
     expect(response.statusCode).toBe(200);
     const responseBody = JSON.parse(response.body);
@@ -182,7 +182,7 @@ describe('Enhanced Report Webhook Handler', () => {
       body
     };
 
-    const response = await handler(event as any);
+    const response = await handler(event as Parameters<typeof handler>[0]);
 
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toEqual({ message: 'Event ignored' });

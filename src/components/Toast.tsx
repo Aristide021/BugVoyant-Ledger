@@ -118,17 +118,5 @@ export const ToastContainer: React.FC = () => {
 };
 
 // Utility functions for showing toasts
-export const toast = {
-  success: (title: string, message?: string, duration?: number) => {
-    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'success', title, message, duration });
-  },
-  error: (title: string, message?: string, duration?: number) => {
-    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'error', title, message, duration });
-  },
-  warning: (title: string, message?: string, duration?: number) => {
-    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'warning', title, message, duration });
-  },
-  info: (title: string, message?: string, duration?: number) => {
-    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'info', title, message, duration });
-  }
-};
+// Export toast utilities from separate file to avoid React refresh warning
+export { toast } from '../utils/toast';

@@ -56,7 +56,7 @@ describe('Incident Processing', () => {
       const providers = [
         {
           name: 'Google Gemini',
-          execute: async () => {
+          execute: async (): Promise<string> => {
             const response = await fetch('https://api.google.com/test');
             if (!response.ok) throw new Error('Gemini failed');
             return 'gemini content';
@@ -64,7 +64,7 @@ describe('Incident Processing', () => {
         },
         {
           name: 'OpenAI',
-          execute: async () => {
+          execute: async (): Promise<string> => {
             const response = await fetch('https://api.openai.com/test');
             const data = await response.json();
             return data.choices[0].message.content;
@@ -93,8 +93,8 @@ describe('Incident Processing', () => {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
       const providers = [
-        { name: 'Provider 1', execute: async () => { await fetch('test1'); return 'content1'; } },
-        { name: 'Provider 2', execute: async () => { await fetch('test2'); return 'content2'; } },
+        { name: 'Provider 1', execute: async (): Promise<string> => { await fetch('test1'); return 'content1'; } },
+        { name: 'Provider 2', execute: async (): Promise<string> => { await fetch('test2'); return 'content2'; } },
       ];
 
       let error: Error | null = null;
