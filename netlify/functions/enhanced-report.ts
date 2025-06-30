@@ -972,7 +972,7 @@ async function generateAudioSummary(markdown: string, reportId: number): Promise
 
 async function sendSlackNotification(
   project: Project,
-  issue: any,
+  issue: SentryWebhookEvent['data']['issue'],
   markdown: string,
   algorandTx: string | null,
   audioUrl: string | null,

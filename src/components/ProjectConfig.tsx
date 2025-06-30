@@ -22,6 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { encryptionService } from '../lib/encryption';
 import { EncryptionSetup } from './EncryptionSetup';
+import { useCallback } from 'react';
 
 interface Project {
   id: string;
@@ -55,23 +56,16 @@ export function ProjectConfig() {
     slack_webhook_url: '',
   });
 
-  useEffect(() => {
-    if (user) {
-      fetchProjects();
-      checkEncryptionKey();
-    }
-  }, [user, fetchProjects, checkEncryptionKey]);
-
-  const checkEncryptionKey = async () => {
+  const checkEncryptionKey = useCallback(async () => {
     const hasKey = encryptionService.isKeyValid();
     setEncryptionKeySet(hasKey);
     if (!hasKey) {
       setShowEncryptionSetup(true);
     }
-  };
+  }, []);
 
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
@@ -95,7 +89,14 @@ export function ProjectConfig() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchProjects();
+      checkEncryptionKey();
+    }
+  }, [user, fetchProjects, checkEncryptionKey]);
 
   const fetchSecretStatus = async (projectId: string) => {
     try {

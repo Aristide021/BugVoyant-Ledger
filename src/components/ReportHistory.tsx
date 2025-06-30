@@ -22,6 +22,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { useCallback } from 'react';
 
 interface Report {
   id: number;
@@ -59,17 +60,7 @@ export function ReportHistory() {
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchReports();
-    }
-  }, [user, fetchReports]);
-
-  useEffect(() => {
-    filterReports();
-  }, [reports, searchTerm, statusFilter, dateFilter, filterReports]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
@@ -93,9 +84,9 @@ export function ReportHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const calculateStats = (reportsData: Report[]) => {
+  const calculateStats = useCallback((reportsData: Report[]) => {
     const totalReports = reportsData.length;
     const completedReports = reportsData.filter(r => r.status === 'completed').length;
     const successRate = totalReports > 0 ? (completedReports / totalReports) * 100 : 0;
@@ -108,9 +99,9 @@ export function ReportHistory() {
       successRate,
       costSavings
     });
-  };
+  }, []);
 
-  const filterReports = () => {
+  const filterReports = useCallback(() => {
     let filtered = reports;
 
     if (searchTerm) {
@@ -148,7 +139,17 @@ export function ReportHistory() {
     }
 
     setFilteredReports(filtered);
-  };
+  }, [reports, searchTerm, statusFilter, dateFilter]);
+
+  useEffect(() => {
+    if (user) {
+      fetchReports();
+    }
+  }, [user, fetchReports]);
+
+  useEffect(() => {
+    filterReports();
+  }, [filterReports]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

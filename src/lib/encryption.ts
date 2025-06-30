@@ -21,11 +21,13 @@ export class EncryptionService {
   // SECURITY IMPROVEMENT: Generate key from user password using PBKDF2
   async generateEncryptionKeyFromPassword(password: string, providedSalt?: string): Promise<string> {
     // Generate salt if not provided
-    let salt = providedSalt;
+    let salt: string;
     if (!salt) {
       const saltArray = new Uint8Array(16);
       crypto.getRandomValues(saltArray);
       salt = Array.from(saltArray, byte => byte.toString(16).padStart(2, '0')).join('');
+    } else {
+      salt = providedSalt;
     }
 
     // Use PBKDF2 to derive key from password
@@ -300,8 +302,8 @@ export class EncryptionService {
     action: string,
     resourceType: string,
     resourceId?: string,
-    oldValues?: Record<string, unknown> | null,
-    newValues?: Record<string, unknown> | null
+    oldValues?: Record<string, unknown>,
+    newValues?: Record<string, unknown>
   ): Promise<void> {
     try {
       const user = (await supabase.auth.getUser()).data.user;

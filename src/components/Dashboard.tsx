@@ -6,6 +6,7 @@ import { ProjectConfig } from './ProjectConfig';
 import { ReportHistory } from './ReportHistory';
 import { GettingStartedGuide } from './GettingStartedGuide';
 import { BoltBadge } from './BoltBadge';
+import { useCallback } from 'react';
 
 interface DashboardStats {
   totalReports: number;
@@ -28,13 +29,7 @@ export function Dashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchStats();
-    }
-  }, [user, fetchStats]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
@@ -87,7 +82,13 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user, fetchStats]);
 
   const handleSignOut = async () => {
     await signOut();

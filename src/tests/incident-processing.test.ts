@@ -77,8 +77,9 @@ describe('Incident Processing', () => {
         try {
           result = await provider.execute();
           break;
-        } catch {
+        } catch (error) {
           console.log(`${provider.name} failed, trying next...`);
+          // Continue to next provider
         }
       }
 
@@ -102,7 +103,7 @@ describe('Incident Processing', () => {
         for (const provider of providers) {
           await provider.execute();
         }
-      } catch (e) {
+      } catch (e: unknown) {
         error = e as Error;
       }
 
@@ -160,8 +161,9 @@ describe('Incident Processing', () => {
       // Circuit should now be open
       try {
         await resilience.withCircuitBreaker(mockOperation, 'test-service', config);
-      } catch {
+      } catch (error) {
         // Circuit should not call the third time
+        expect(error).toBeDefined();
       }
 
       expect(mockOperation).toHaveBeenCalledTimes(2); // Should not call the third time
@@ -174,9 +176,10 @@ describe('Incident Processing', () => {
       
       try {
         await resilience.withTimeout(slowOperation, 500, 'slow-operation');
-      } catch {
+      } catch (error) {
         const elapsed = Date.now() - startTime;
         expect(elapsed).toBeLessThan(1000); // Should timeout before 1 second
+        expect(error).toBeDefined();
       }
     });
   });
@@ -349,14 +352,16 @@ describe('Incident Processing', () => {
       
       try {
         await mockBlockchainOp();
-      } catch {
+      } catch (error) {
         blockchainFailed = true;
+        expect(error).toBeDefined();
       }
       
       try {
         await mockAudioOp();
-      } catch {
+      } catch (error) {
         audioFailed = true;
+        expect(error).toBeDefined();
       }
       
       if (blockchainFailed && audioFailed) {
