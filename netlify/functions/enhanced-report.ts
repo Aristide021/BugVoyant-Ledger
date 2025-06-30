@@ -1011,7 +1011,7 @@ async function sendSlackNotification(
       projectName: project.name,
       issueTitle: issue.title,
       issueUrl: issue.permalink,
-      reportId: parseInt(issue.id),
+      reportId: parseInt(issue.id, 10),
       status,
       provider: usedProvider,
       hasAudio: !!audioUrl,
