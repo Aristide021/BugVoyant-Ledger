@@ -234,7 +234,7 @@ describe('Enhanced Report Webhook Handler', () => {
       body
     };
 
-    const response = await handler(event as any);
+    const response = await handler(event as Parameters<typeof handler>[0]);
 
     expect(response.statusCode).toBe(500);
     expect(JSON.parse(response.body).error).toBe('Database error');

@@ -11,7 +11,7 @@ describe('Slack Integration', () => {
 
   describe('Slack Notification Service', () => {
     it('should send incident notification successfully', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({
         ok: true,
         status: 200
@@ -48,7 +48,7 @@ describe('Slack Integration', () => {
     });
 
     it('should handle Slack API errors', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
@@ -76,7 +76,7 @@ describe('Slack Integration', () => {
     });
 
     it('should format message blocks correctly', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({ ok: true });
 
       const notificationData = {
@@ -119,7 +119,7 @@ describe('Slack Integration', () => {
     });
 
     it('should include action buttons for different features', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({ ok: true });
 
       const notificationData = {
@@ -159,7 +159,7 @@ describe('Slack Integration', () => {
     });
 
     it('should send test notification', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockResolvedValueOnce({ ok: true });
 
       const result = await slackService.sendTestNotification(
@@ -175,7 +175,7 @@ describe('Slack Integration', () => {
     });
 
     it('should handle network errors', async () => {
-      const mockFetch = global.fetch as any;
+      const mockFetch = global.fetch as ReturnType<typeof vi.fn>;
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       const notificationData = {
