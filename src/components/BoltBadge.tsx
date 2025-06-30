@@ -57,8 +57,8 @@ export function BoltBadge() {
         
         @media (max-width: 768px) {
           .bolt-badge-container {
-            top: 1rem;
-            right: 1rem;
+            bottom: 1rem;
+            left: 1rem;
           }
           
           .bolt-badge-img {
@@ -69,8 +69,8 @@ export function BoltBadge() {
         
         @media (min-width: 769px) {
           .bolt-badge-container {
-            top: 1.5rem;
-            right: 1.5rem;
+            bottom: 1.5rem;
+            left: 1.5rem;
           }
           
           .bolt-badge-img {
@@ -81,8 +81,8 @@ export function BoltBadge() {
         
         @media (min-width: 1024px) {
           .bolt-badge-container {
-            top: 2rem;
-            right: 2rem;
+            bottom: 2rem;
+            left: 2rem;
           }
           
           .bolt-badge-img {
