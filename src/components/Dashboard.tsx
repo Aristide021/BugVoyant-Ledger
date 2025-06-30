@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock, Settings, FileText, LogOut, Plus, TrendingUp, Users, Zap, BookOpen } from 'lucide-react';
+import { Activity, CheckCircle, Settings, FileText, LogOut, TrendingUp, Zap, BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { ProjectConfig } from './ProjectConfig';
@@ -32,7 +32,7 @@ export function Dashboard() {
     if (user) {
       fetchStats();
     }
-  }, [user]);
+  }, [user, fetchStats]);
 
   const fetchStats = async () => {
     if (!user?.id) {

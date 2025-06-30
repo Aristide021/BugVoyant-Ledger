@@ -25,7 +25,7 @@ describe('AuthForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    (useAuth as any).mockReturnValue({
+    (useAuth as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       signIn: mockSignIn,
       signUp: mockSignUp,
       signInWithOAuth: mockSignInWithOAuth,

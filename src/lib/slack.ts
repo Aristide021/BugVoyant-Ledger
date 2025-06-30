@@ -1,7 +1,7 @@
 interface SlackMessage {
   text: string;
-  blocks?: any[];
-  attachments?: any[];
+  blocks?: Record<string, unknown>[];
+  attachments?: Record<string, unknown>[];
 }
 
 interface SlackNotificationData {
@@ -65,7 +65,7 @@ export class SlackService {
     const statusEmoji = this.getStatusEmoji(data.status);
     const statusColor = this.getStatusColor(data.status);
     
-    const blocks = [
+    const blocks: Record<string, unknown>[] = [
       {
         type: 'header',
         text: {
@@ -144,7 +144,7 @@ export class SlackService {
     }
 
     // Add action buttons
-    const actions: any[] = [
+    const actions: Record<string, unknown>[] = [
       {
         type: 'button',
         text: {

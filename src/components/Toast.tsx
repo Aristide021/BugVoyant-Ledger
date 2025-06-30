@@ -98,9 +98,9 @@ export const ToastContainer: React.FC = () => {
 
   // Expose addToast globally
   useEffect(() => {
-    (window as any).addToast = addToast;
+    (window as unknown as { addToast: typeof addToast }).addToast = addToast;
     return () => {
-      delete (window as any).addToast;
+      delete (window as unknown as { addToast?: typeof addToast }).addToast;
     };
   }, []);
 
@@ -120,15 +120,15 @@ export const ToastContainer: React.FC = () => {
 // Utility functions for showing toasts
 export const toast = {
   success: (title: string, message?: string, duration?: number) => {
-    (window as any).addToast?.({ type: 'success', title, message, duration });
+    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'success', title, message, duration });
   },
   error: (title: string, message?: string, duration?: number) => {
-    (window as any).addToast?.({ type: 'error', title, message, duration });
+    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'error', title, message, duration });
   },
   warning: (title: string, message?: string, duration?: number) => {
-    (window as any).addToast?.({ type: 'warning', title, message, duration });
+    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'warning', title, message, duration });
   },
   info: (title: string, message?: string, duration?: number) => {
-    (window as any).addToast?.({ type: 'info', title, message, duration });
+    (window as unknown as { addToast?: (toast: Omit<Toast, 'id'>) => void }).addToast?.({ type: 'info', title, message, duration });
   }
 };

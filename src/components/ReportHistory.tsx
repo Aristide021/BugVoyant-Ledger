@@ -11,11 +11,9 @@ import {
   XCircle,
   Download,
   Copy,
-  Share2,
   Filter,
   Search,
   Calendar,
-  TrendingUp,
   BarChart3,
   Activity
 } from 'lucide-react';
@@ -65,11 +63,11 @@ export function ReportHistory() {
     if (user) {
       fetchReports();
     }
-  }, [user]);
+  }, [user, fetchReports]);
 
   useEffect(() => {
     filterReports();
-  }, [reports, searchTerm, statusFilter, dateFilter]);
+  }, [reports, searchTerm, statusFilter, dateFilter, filterReports]);
 
   const fetchReports = async () => {
     if (!user?.id) {
@@ -250,23 +248,7 @@ export function ReportHistory() {
     }
   };
 
-  const shareReport = async (report: Report) => {
-    const shareData = {
-      title: `Incident Report: ${report.title}`,
-      text: `Post-mortem report for ${report.title}`,
-      url: window.location.href
-    };
 
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.error('Error sharing:', error);
-      }
-    } else {
-      copyToClipboard(window.location.href, 'share');
-    }
-  };
 
   if (loading) {
     return (

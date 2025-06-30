@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { LoadingSpinner, ButtonSpinner, PageLoader } from '../components/LoadingSpinner';
 import { toast } from '../components/Toast';
@@ -81,7 +81,7 @@ describe('LoadingSpinner', () => {
 describe('Toast', () => {
   beforeEach(() => {
     // Clear any existing toasts
-    delete (window as any).addToast;
+    delete (window as unknown as { addToast?: unknown }).addToast;
   });
 
   it('should expose toast utility functions', () => {

@@ -13,8 +13,7 @@ import {
   Clock,
   Users,
   TrendingUp,
-  Sparkles,
-  Github,
+  Chrome
   Chrome
 } from 'lucide-react';
 import { BoltBadge } from './BoltBadge';

@@ -21,26 +21,28 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Enhanced error handling
-export const handleSupabaseError = (error: any) => {
+export const handleSupabaseError = (error: unknown) => {
   console.error('Supabase error:', error);
   
-  if (error?.code === 'PGRST301') {
+  const err = error as { code?: string; message?: string };
+  
+  if (err?.code === 'PGRST301') {
     return 'Database connection error. Please try again.';
   }
   
-  if (error?.code === '22P02') {
+  if (err?.code === '22P02') {
     return 'Invalid data format. Please check your input.';
   }
   
-  if (error?.code === '23505') {
+  if (err?.code === '23505') {
     return 'This record already exists.';
   }
   
-  if (error?.code === '42501') {
+  if (err?.code === '42501') {
     return 'Permission denied. Please check your access rights.';
   }
   
-  return error?.message || 'An unexpected error occurred.';
+  return err?.message || 'An unexpected error occurred.';
 };
 
 // Database types with enhanced security fields
@@ -151,8 +153,8 @@ export type Database = {
           action: string;
           resource_type: string;
           resource_id: string | null;
-          old_values: any;
-          new_values: any;
+          old_values: Record<string, unknown>;
+          new_values: Record<string, unknown>;
           ip_address: string | null;
           user_agent: string | null;
           created_at: string;
@@ -164,8 +166,8 @@ export type Database = {
           action: string;
           resource_type: string;
           resource_id?: string | null;
-          old_values?: any;
-          new_values?: any;
+          old_values?: Record<string, unknown>;
+          new_values?: Record<string, unknown>;
           ip_address?: string | null;
           user_agent?: string | null;
           created_at?: string;
@@ -177,8 +179,8 @@ export type Database = {
           action?: string;
           resource_type?: string;
           resource_id?: string | null;
-          old_values?: any;
-          new_values?: any;
+          old_values?: Record<string, unknown>;
+          new_values?: Record<string, unknown>;
           ip_address?: string | null;
           user_agent?: string | null;
           created_at?: string;
@@ -242,8 +244,8 @@ export type Database = {
           p_action: string;
           p_resource_type: string;
           p_resource_id?: string;
-          p_old_values?: any;
-          p_new_values?: any;
+          p_old_values?: Record<string, unknown>;
+          p_new_values?: Record<string, unknown>;
         };
         Returns: string;
       };

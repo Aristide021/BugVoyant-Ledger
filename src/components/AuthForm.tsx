@@ -33,7 +33,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
       } else {
         toast.success('Welcome to BugVoyant-Ledger!', 'You have been successfully authenticated.');
       }
-    } catch (err) {
+    } catch {
       const errorMessage = 'An unexpected error occurred';
       setError(errorMessage);
       toast.error('Authentication error', errorMessage);
@@ -52,7 +52,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
         setError(error.message);
         toast.error(`${provider} sign-in failed`, error.message);
       }
-    } catch (err) {
+    } catch {
       const errorMessage = `Failed to sign in with ${provider}`;
       setError(errorMessage);
       toast.error('OAuth error', errorMessage);

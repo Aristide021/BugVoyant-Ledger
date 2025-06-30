@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   BookOpen, 
-  ArrowRight, 
   CheckCircle, 
   ExternalLink, 
   Copy, 

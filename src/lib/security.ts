@@ -187,7 +187,7 @@ export class SecurityService {
       userAgent?: string;
       severity: 'low' | 'medium' | 'high' | 'critical';
       description: string;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<void> {
     try {
@@ -226,7 +226,7 @@ export class SecurityService {
   }
 
   // Generate security report
-  async generateSecurityReport(userId: string, days: number = 30): Promise<any> {
+  async generateSecurityReport(userId: string, days: number = 30): Promise<Record<string, unknown> | null> {
     try {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 

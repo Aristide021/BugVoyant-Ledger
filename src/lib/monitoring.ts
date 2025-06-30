@@ -9,7 +9,7 @@ export interface ProcessingStep {
   provider?: string;
   costCents?: number;
   retryCount?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CostTrackingData {
@@ -34,7 +34,7 @@ export class MonitoringService {
   }
 
   // Track processing steps for a report
-  startStep(reportId: number, stepName: string, metadata?: Record<string, any>): void {
+  startStep(reportId: number, stepName: string, metadata?: Record<string, unknown>): void {
     const key = `${reportId}`;
     const steps = this.processingSteps.get(key) || [];
     
@@ -57,7 +57,7 @@ export class MonitoringService {
     stepName: string, 
     provider?: string, 
     costCents?: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const key = `${reportId}`;
     const steps = this.processingSteps.get(key) || [];
@@ -94,7 +94,7 @@ export class MonitoringService {
     stepName: string, 
     error: string, 
     retryCount: number = 0,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): void {
     const key = `${reportId}`;
     const steps = this.processingSteps.get(key) || [];
@@ -180,7 +180,7 @@ export class MonitoringService {
     metricName: string,
     value: number,
     type: 'counter' | 'gauge' | 'histogram' = 'gauge',
-    tags: Record<string, any> = {}
+    tags: Record<string, unknown> = {}
   ): Promise<void> {
     try {
       await supabase.rpc('record_system_metric', {
@@ -199,8 +199,8 @@ export class MonitoringService {
     action: string,
     resourceType: string,
     resourceId?: string,
-    oldValues?: any,
-    newValues?: any,
+    oldValues?: Record<string, unknown>,
+    newValues?: Record<string, unknown>,
     options: {
       userId?: string;
       projectId?: string;
@@ -246,7 +246,7 @@ export class MonitoringService {
   }
 
   // Get system health summary
-  async getSystemHealth(): Promise<any> {
+  async getSystemHealth(): Promise<unknown[]> {
     try {
       const { data, error } = await supabase
         .from('system_health')
@@ -263,7 +263,7 @@ export class MonitoringService {
   }
 
   // Get cost summary for user
-  async getCostSummary(userId: string, period: string = 'current'): Promise<any> {
+  async getCostSummary(userId: string, period: string = 'current'): Promise<unknown[]> {
     try {
       const { data, error } = await supabase
         .from('cost_tracking')
@@ -290,7 +290,7 @@ export class MonitoringService {
     providerUsed?: string,
     costCents?: number,
     retryCount?: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       await supabase.rpc('track_processing_step', {

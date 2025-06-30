@@ -19,8 +19,9 @@ export class EncryptionService {
   }
 
   // SECURITY IMPROVEMENT: Generate key from user password using PBKDF2
-  async generateEncryptionKeyFromPassword(password: string, salt?: string): Promise<string> {
+  async generateEncryptionKeyFromPassword(password: string, _salt?: string): Promise<string> {
     // Generate salt if not provided
+    let salt = _salt;
     if (!salt) {
       const saltArray = new Uint8Array(16);
       crypto.getRandomValues(saltArray);
@@ -299,8 +300,8 @@ export class EncryptionService {
     action: string,
     resourceType: string,
     resourceId?: string,
-    oldValues?: any,
-    newValues?: any
+    oldValues?: Record<string, unknown>,
+    newValues?: Record<string, unknown>
   ): Promise<void> {
     try {
       const user = (await supabase.auth.getUser()).data.user;
@@ -320,7 +321,7 @@ export class EncryptionService {
   }
 
   // Get audit logs for a project
-  async getAuditLogs(projectId: string, limit: number = 50): Promise<any[]> {
+  async getAuditLogs(projectId: string, limit: number = 50): Promise<unknown[]> {
     try {
       const { data, error } = await supabase
         .from('audit_logs')

@@ -15,7 +15,6 @@ import {
   Copy,
   CheckCircle,
   History,
-  HelpCircle,
   Settings,
   Zap
 } from 'lucide-react';
@@ -43,7 +42,7 @@ export function ProjectConfig() {
   const [isCreating, setIsCreating] = useState(false);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [secretStatuses, setSecretStatuses] = useState<Record<string, SecretStatus>>({});
-  const [auditLogs, setAuditLogs] = useState<Record<string, any[]>>({});
+  const [auditLogs, setAuditLogs] = useState<Record<string, unknown[]>>({});
   const [showAuditLogs, setShowAuditLogs] = useState<Record<string, boolean>>({});
   const [encryptionKeySet, setEncryptionKeySet] = useState(false);
   const [showEncryptionSetup, setShowEncryptionSetup] = useState(false);
@@ -61,7 +60,7 @@ export function ProjectConfig() {
       fetchProjects();
       checkEncryptionKey();
     }
-  }, [user]);
+  }, [user, fetchProjects, checkEncryptionKey]);
 
   const checkEncryptionKey = async () => {
     const hasKey = encryptionService.isKeyValid();
@@ -71,15 +70,6 @@ export function ProjectConfig() {
     }
   };
 
-  const setupEncryption = async () => {
-    try {
-      const key = await encryptionService.generateEncryptionKey();
-      setEncryptionKeySet(true);
-      setShowEncryptionSetup(false);
-    } catch (error) {
-      console.error('Error setting up encryption:', error);
-    }
-  };
 
   const fetchProjects = async () => {
     if (!user?.id) {

@@ -32,7 +32,7 @@ export function EncryptionSetup({ onComplete, onCancel }: EncryptionSetupProps) 
     try {
       await encryptionService.generateEncryptionKeyFromPassword(password);
       onComplete();
-    } catch (error) {
+    } catch {
       setError('Failed to set up encryption');
     } finally {
       setLoading(false);
@@ -46,7 +46,7 @@ export function EncryptionSetup({ onComplete, onCancel }: EncryptionSetupProps) 
     try {
       await encryptionService.generateEncryptionKey();
       onComplete();
-    } catch (error) {
+    } catch {
       setError('Failed to set up encryption');
     } finally {
       setLoading(false);

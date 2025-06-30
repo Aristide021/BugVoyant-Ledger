@@ -39,11 +39,11 @@ interface SentryWebhookEvent {
       culprit: string;
       level: string;
       status: string;
-      statusDetails: any;
+      statusDetails: Record<string, unknown>;
       type: string;
-      metadata: any;
+      metadata: Record<string, unknown>;
       numComments: number;
-      assignedTo: any;
+      assignedTo: string | null;
       permalink: string;
       firstSeen: string;
       lastSeen: string;
@@ -71,7 +71,7 @@ interface Project {
 interface AIProvider {
   name: string;
   cost: number;
-  execute: (prompt: string, context: any) => Promise<string>;
+  execute: (prompt: string, context: Record<string, unknown>) => Promise<string>;
 }
 
 // AI Provider implementations with fallback
@@ -79,7 +79,7 @@ const aiProviders: AIProvider[] = [
   {
     name: 'Google Gemini 2.0 Flash',
     cost: 0.0014,
-    execute: async (prompt: string, context: any): Promise<string> => {
+    execute: async (prompt: string, context: Record<string, unknown>): Promise<string> => {
       return resilience.withCircuitBreaker(
         () => resilience.withRetry(
           async () => {
@@ -132,7 +132,7 @@ const aiProviders: AIProvider[] = [
   {
     name: 'OpenAI GPT-4o-mini',
     cost: 0.0021,
-    execute: async (prompt: string, context: any): Promise<string> => {
+    execute: async (prompt: string, context: Record<string, unknown>): Promise<string> => {
       return resilience.withCircuitBreaker(
         () => resilience.withRetry(
           async () => {
@@ -182,7 +182,7 @@ const aiProviders: AIProvider[] = [
   {
     name: 'Anthropic Claude 3 Haiku',
     cost: 0.00375,
-    execute: async (prompt: string, context: any): Promise<string> => {
+    execute: async (prompt: string, context: Record<string, unknown>): Promise<string> => {
       return resilience.withCircuitBreaker(
         () => resilience.withRetry(
           async () => {
@@ -312,7 +312,6 @@ const handler: Handler = async (event: HandlerEvent) => {
     
     // CRITICAL FIX: Find the correct project based on Sentry project information
     // Instead of hardcoding projects[0], match by Sentry org slug or project info
-    const sentryProjectSlug = issue.project?.slug;
     const sentryOrgSlug = extractOrgSlugFromPermalink(issue.permalink);
     
     // Content validation
@@ -562,11 +561,11 @@ function extractOrgSlugFromPermalink(permalink: string): string {
 
 async function processIncident(
   project: Project, 
-  issue: any, 
+  issue: SentryWebhookEvent['data']['issue'], 
   reportId: number,
   requestId: string,
-  ipAddress: string,
-  userAgent: string
+  _ipAddress: string,
+  _userAgent: string
 ) {
   let status: string = 'processing';
   let markdown = '';
@@ -574,7 +573,7 @@ async function processIncident(
   let audioUrl: string | null = null;
   let usedProvider = '';
   let totalCostCents = 0;
-  let processingStartTime = Date.now();
+  const processingStartTime = Date.now();
 
   try {
     console.log(`Processing incident ${issue.id} for project ${project.id}, report ${reportId}`);
@@ -786,7 +785,7 @@ async function processIncident(
 }
 
 async function generateMarkdownSummaryWithFallback(
-  issueDetails: any, 
+  issueDetails: Record<string, unknown>, 
   reportId: number
 ): Promise<{ content: string; provider: string; costCents: number; tokens: number }> {
   const systemPrompt = `You are a senior SRE expert. Transform the following Sentry incident data into a polished post-mortem report in Markdown format. Include:
