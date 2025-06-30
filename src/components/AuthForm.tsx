@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Wallet, Info, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { walletService } from '../lib/wallet';
 import { toast } from './Toast';
 
 interface AuthFormProps {
@@ -15,15 +14,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [walletConnecting, setWalletConnecting] = useState(false);
-  const [availableWallets, setAvailableWallets] = useState<string[]>([]);
-  const { signUp, signIn, signInWithOAuth, signInWithWallet } = useAuth();
-
-  useEffect(() => {
-    // Check available wallets on component mount
-    const wallets = walletService.getAvailableWallets();
-    setAvailableWallets(wallets);
-  }, []);
+  const { signUp, signIn, signInWithOAuth } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,37 +60,6 @@ export function AuthForm({ onBack }: AuthFormProps) {
     }
   };
 
-  const handleWalletSignIn = async () => {
-    setWalletConnecting(true);
-    setError(null);
-
-    try {
-      const { error } = await signInWithWallet();
-      if (error) {
-        setError(error.message);
-        toast.error('Wallet sign-in failed', error.message);
-      } else {
-        toast.success('Wallet connected!', 'You have been authenticated with your Algorand wallet.');
-      }
-    } catch (err) {
-      const errorMessage = 'Failed to connect wallet';
-      setError(errorMessage);
-      toast.error('Wallet error', errorMessage);
-    } finally {
-      setWalletConnecting(false);
-    }
-  };
-
-  const getWalletButtonText = () => {
-    if (availableWallets.includes('Pera Wallet')) {
-      return 'Connect Pera Wallet';
-    } else if (availableWallets.includes('AlgoSigner')) {
-      return 'Connect AlgoSigner';
-    } else {
-      return 'Connect Algorand Wallet (Demo)';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-cyan-600/5"></div>
@@ -129,7 +89,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
           <div className="space-y-3 mb-6">
             <button
               onClick={() => handleOAuthSignIn('google')}
-              disabled={loading || walletConnecting}
+              disabled={loading}
               className="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
             >
               <Chrome className="w-5 h-5" />
@@ -138,47 +98,13 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
             <button
               onClick={() => handleOAuthSignIn('github')}
-              disabled={loading || walletConnecting}
+              disabled={loading}
               className="w-full flex items-center justify-center space-x-3 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg border border-gray-700"
             >
               <Github className="w-5 h-5" />
               <span>Continue with GitHub</span>
             </button>
           </div>
-
-          {/* Wallet Authentication */}
-          <div className="mb-6">
-            <button
-              onClick={handleWalletSignIn}
-              disabled={loading || walletConnecting}
-              className="w-full flex items-center justify-center space-x-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-green-600/25"
-            >
-              {walletConnecting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <Wallet className="w-5 h-5" />
-              )}
-              <span>{getWalletButtonText()}</span>
-            </button>
-          </div>
-
-          {/* Wallet Status Info */}
-          {availableWallets.length > 0 && (
-            <div className="mb-6 p-3 bg-blue-600/10 border border-blue-600/20 rounded-xl">
-              <div className="flex items-start space-x-2">
-                <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-blue-400 text-sm font-medium">Available Wallets</p>
-                  <p className="text-gray-400 text-xs">
-                    {availableWallets.filter(w => w !== 'Demo Mode').length > 0 
-                      ? availableWallets.filter(w => w !== 'Demo Mode').join(', ')
-                      : 'Demo mode available for testing'
-                    }
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Divider */}
           <div className="relative mb-6">
@@ -243,7 +169,7 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
             <button
               type="submit"
-              disabled={loading || walletConnecting}
+              disabled={loading}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-blue-600/25"
             >
               {loading ? (
@@ -281,19 +207,6 @@ export function AuthForm({ onBack }: AuthFormProps) {
                   <li>Add your OAuth app credentials from Google Cloud Console / GitHub</li>
                   <li>Set redirect URL to: <code className="text-blue-300">{window.location.origin}/auth/callback</code></li>
                 </ol>
-              </div>
-            </div>
-          </div>
-
-          {/* Web3 Notice */}
-          <div className="mt-6 p-4 bg-green-600/10 border border-green-600/20 rounded-xl">
-            <div className="flex items-start space-x-3">
-              <Wallet className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-green-400 font-medium mb-1">Web3-Native Authentication</h4>
-                <p className="text-gray-400 text-sm">
-                  Connect your Algorand wallet for seamless Web3 authentication. Your wallet signature proves ownership without passwords.
-                </p>
               </div>
             </div>
           </div>

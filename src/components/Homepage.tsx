@@ -15,8 +15,7 @@ import {
   TrendingUp,
   Sparkles,
   Github,
-  Chrome,
-  Wallet
+  Chrome
 } from 'lucide-react';
 
 interface HomepageProps {
@@ -54,12 +53,6 @@ export function Homepage({ onGetStarted }: HomepageProps) {
       title: 'Real-time Processing',
       description: 'Webhook-driven architecture processes incidents in seconds with enterprise-grade reliability',
       color: 'from-indigo-500 to-purple-500'
-    },
-    {
-      icon: Wallet,
-      title: 'Web3-Native Auth',
-      description: 'Sign in with Google, GitHub, or your Algorand wallet for seamless Web3-native authentication',
-      color: 'from-teal-500 to-blue-500'
     }
   ];
 
@@ -103,12 +96,6 @@ export function Homepage({ onGetStarted }: HomepageProps) {
       name: 'GitHub SSO',
       description: 'Developer-friendly authentication',
       color: 'from-gray-700 to-gray-900'
-    },
-    {
-      icon: Wallet,
-      name: 'Algorand Wallet',
-      description: 'Web3-native wallet authentication',
-      color: 'from-green-500 to-emerald-500'
     }
   ];
 
@@ -187,14 +174,14 @@ export function Homepage({ onGetStarted }: HomepageProps) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                Multiple Authentication Options
+                Simple Authentication Options
               </h2>
               <p className="text-gray-300 max-w-2xl mx-auto">
-                Choose your preferred sign-in method. From traditional SSO to Web3-native wallet authentication.
+                Choose your preferred sign-in method. OAuth integration with Google and GitHub for seamless authentication.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               {authMethods.map((method, index) => (
                 <div
                   key={index}
