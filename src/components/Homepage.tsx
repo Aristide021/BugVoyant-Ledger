@@ -17,6 +17,7 @@ import {
   Github,
   Chrome
 } from 'lucide-react';
+import { BoltBadge } from './BoltBadge';
 
 interface HomepageProps {
   onGetStarted: () => void;
@@ -101,6 +102,9 @@ export function Homepage({ onGetStarted }: HomepageProps) {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
+      {/* Bolt.new Hackathon Badge */}
+      <BoltBadge />
+      
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-cyan-600/5"></div>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.02%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] animate-pulse"></div>
       
@@ -366,7 +370,7 @@ export function Homepage({ onGetStarted }: HomepageProps) {
         {/* Footer */}
         <footer className="py-12 border-t border-gray-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                   <Zap className="w-4 h-4 text-white" />
@@ -374,8 +378,11 @@ export function Homepage({ onGetStarted }: HomepageProps) {
                 <span className="ml-2 text-white font-semibold">BugVoyant-Ledger</span>
               </div>
               
-              <div className="text-gray-400 text-sm">
-                © 2025 BugVoyant-Ledger. Transform incidents into insights.
+              <div className="text-gray-400 text-sm text-center md:text-right">
+                <div>© 2025 BugVoyant-Ledger. Transform incidents into insights.</div>
+                <div className="mt-1">
+                  Built with <a href="https://bolt.new" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors">Bolt.new</a> for the World's Largest Hackathon
+                </div>
               </div>
             </div>
           </div>

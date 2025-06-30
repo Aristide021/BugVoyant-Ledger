@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Zap, ArrowLeft, Github, Chrome, Info } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from './Toast';
+import { BoltBadge } from './BoltBadge';
 
 interface AuthFormProps {
   onBack?: () => void;
@@ -62,6 +63,9 @@ export function AuthForm({ onBack }: AuthFormProps) {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
+      {/* Bolt.new Hackathon Badge */}
+      <BoltBadge />
+      
       <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-cyan-600/5"></div>
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%22%23ffffff%22 fill-opacity=%220.02%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%224%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] animate-pulse"></div>
       

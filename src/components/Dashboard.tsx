@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { ProjectConfig } from './ProjectConfig';
 import { ReportHistory } from './ReportHistory';
 import { GettingStartedGuide } from './GettingStartedGuide';
+import { BoltBadge } from './BoltBadge';
 
 interface DashboardStats {
   totalReports: number;
@@ -96,6 +97,9 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white">
+      {/* Bolt.new Hackathon Badge */}
+      <BoltBadge />
+      
       <div className="flex">
         {/* Sidebar */}
         <div className="w-64 bg-[#0f1419] border-r border-gray-800 min-h-screen flex flex-col">
