@@ -14,7 +14,8 @@ import {
   Users,
   TrendingUp,
   Chrome,
-  Github
+  Github,
+  Sparkles
 } from 'lucide-react';
 import { BoltBadge } from './BoltBadge';
 
