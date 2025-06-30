@@ -57,43 +57,46 @@ export function BoltBadge() {
         
         @media (max-width: 768px) {
           .bolt-badge-container {
-            bottom: 1rem;
-            left: 1rem;
+            bottom: 1rem !important;
+            left: 1rem !important;
+            position: fixed !important;
           }
           
           .bolt-badge-img {
-            width: 3rem;
-            height: 3rem;
+            width: 3rem !important;
+            height: 3rem !important;
           }
         }
         
         @media (min-width: 769px) {
           .bolt-badge-container {
-            bottom: 1.5rem;
-            left: 1.5rem;
+            bottom: 1.5rem !important;
+            left: 1.5rem !important;
+            position: fixed !important;
           }
           
           .bolt-badge-img {
-            width: 4rem;
-            height: 4rem;
+            width: 4rem !important;
+            height: 4rem !important;
           }
         }
         
         @media (min-width: 1024px) {
           .bolt-badge-container {
-            bottom: 2rem;
-            left: 2rem;
+            bottom: 2rem !important;
+            left: 2rem !important;
+            position: fixed !important;
           }
           
           .bolt-badge-img {
-            width: 5rem;
-            height: 5rem;
+            width: 5rem !important;
+            height: 5rem !important;
           }
         }
       `}</style>
 
       {/* Badge Component */}
-      <div className="bolt-badge-container fixed z-50">
+      <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 lg:bottom-8 lg:left-8 z-50">
         <a 
           href="https://bolt.new" 
           target="_blank" 
@@ -104,7 +107,7 @@ export function BoltBadge() {
           <img 
             src="https://storage.bolt.army/white_circle_360x360.png" 
             alt="Built with Bolt.new badge" 
-            className={`bolt-badge-img rounded-full shadow-lg bolt-badge ${
+            className={`w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 rounded-full shadow-lg bolt-badge ${
               isAnimated ? 'bolt-badge-intro animated' : 'bolt-badge-intro'
             }`}
             onAnimationEnd={() => setIsAnimated(true)}
