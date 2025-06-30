@@ -310,6 +310,11 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     const issue = webhookData.data.issue;
     
+    // CRITICAL FIX: Find the correct project based on Sentry project information
+    // Instead of hardcoding projects[0], match by Sentry org slug or project info
+    const sentryProjectSlug = issue.project?.slug;
+    const sentryOrgSlug = extractOrgSlugFromPermalink(issue.permalink);
+    
     // Content validation
     const contentValidation = security.validateContent(
       JSON.stringify(issue), 
@@ -335,6 +340,7 @@ const handler: Handler = async (event: HandlerEvent) => {
     const { data: projects, error: projectError } = await supabase
       .from('projects')
       .select('*')
+      .eq('sentry_org_slug', sentryOrgSlug)
       .order('created_at', { ascending: false });
 
     if (projectError) {
@@ -345,14 +351,46 @@ const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
+    // If no project found for this org, try to find any project (fallback for existing setups)
+    let project: Project;
     if (!projects || projects.length === 0) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: 'No projects configured' }),
-      };
+      console.warn(`No project found for Sentry org: ${sentryOrgSlug}, trying fallback...`);
+      
+      const { data: fallbackProjects, error: fallbackError } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (fallbackError || !fallbackProjects || fallbackProjects.length === 0) {
+        console.error('No projects configured at all');
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ 
+            error: 'No projects configured',
+            details: `No project found for Sentry org '${sentryOrgSlug}'. Please ensure your project's Sentry org slug matches the webhook source.`
+          }),
+        };
+      }
+      
+      project = fallbackProjects[0];
+      console.warn(`Using fallback project: ${project.name} for org: ${sentryOrgSlug}`);
+    } else {
+      project = projects[0];
+      console.log(`Found matching project: ${project.name} for org: ${sentryOrgSlug}`);
     }
 
-    const project: Project = projects[0];
+    // Validate that the project belongs to the correct organization
+    if (project.sentry_org_slug && project.sentry_org_slug !== sentryOrgSlug) {
+      console.warn(`Project org slug mismatch: expected '${project.sentry_org_slug}', got '${sentryOrgSlug}'`);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ 
+          error: 'Project organization mismatch',
+          details: `Webhook from '${sentryOrgSlug}' but project configured for '${project.sentry_org_slug}'`
+        }),
+      };
+    }
 
     // Check rate limits
     const rateLimitCheck = await security.checkRateLimit(project.user_id, DEFAULT_SECURITY_CONFIG);
@@ -494,6 +532,33 @@ const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 };
+
+// Helper function to extract org slug from Sentry permalink
+function extractOrgSlugFromPermalink(permalink: string): string {
+  try {
+    // Sentry permalinks format: https://sentry.io/organizations/{org-slug}/issues/{issue-id}/
+    const url = new URL(permalink);
+    const pathParts = url.pathname.split('/');
+    const orgIndex = pathParts.indexOf('organizations');
+    
+    if (orgIndex !== -1 && pathParts[orgIndex + 1]) {
+      return pathParts[orgIndex + 1];
+    }
+    
+    // Fallback: try to extract from hostname if it's a custom domain
+    // Format: {org-slug}.sentry.io
+    const hostname = url.hostname;
+    if (hostname.endsWith('.sentry.io') && hostname !== 'sentry.io') {
+      return hostname.split('.')[0];
+    }
+    
+    console.warn('Could not extract org slug from permalink:', permalink);
+    return 'unknown';
+  } catch (error) {
+    console.error('Error parsing Sentry permalink:', error);
+    return 'unknown';
+  }
+}
 
 async function processIncident(
   project: Project, 

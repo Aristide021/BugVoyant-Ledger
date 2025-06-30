@@ -646,10 +646,15 @@ export function ProjectConfig() {
             <div className="flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
               <div>
-                <h4 className="text-orange-400 font-semibold mb-3">Environment Setup Required</h4>
+                <h4 className="text-orange-400 font-semibold mb-3">Important: Sentry Organization Matching</h4>
                 <p className="text-gray-300 mb-4">
-                  To complete the Nodely integration, ensure these environment variables are configured in Netlify:
+                  Make sure your Sentry Organization Slug exactly matches the organization sending webhooks. This ensures reports are routed to the correct project.
                 </p>
+                <div className="bg-gray-900/50 rounded-lg p-3 mb-4">
+                  <p className="text-gray-400 text-sm mb-2">Your webhook will include the org slug from Sentry. Example:</p>
+                  <code className="text-blue-300 text-xs">https://sentry.io/organizations/your-org-slug/issues/123/</code>
+                </div>
+                <h5 className="text-orange-400 font-medium mb-2">Environment Variables (Netlify)</h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="bg-gray-900/50 rounded-lg p-3">
                     <code className="text-green-300">ALGORAND_TOKEN</code>

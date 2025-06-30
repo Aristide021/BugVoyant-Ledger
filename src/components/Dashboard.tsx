@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle, Clock, Settings, FileText, LogOut, Plus, TrendingUp, Users, Zap } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Clock, Settings, FileText, LogOut, Plus, TrendingUp, Users, Zap, BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { ProjectConfig } from './ProjectConfig';
 import { ReportHistory } from './ReportHistory';
+import { GettingStartedGuide } from './GettingStartedGuide';
 
 interface DashboardStats {
   totalReports: number;
@@ -16,6 +17,7 @@ interface DashboardStats {
 export function Dashboard() {
   const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'reports'>('overview');
+  const [showGettingStarted, setShowGettingStarted] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalReports: 0,
     completedReports: 0,
@@ -188,6 +190,13 @@ export function Dashboard() {
                 >
                   New Project
                 </button>
+                <button 
+                  onClick={() => setShowGettingStarted(true)}
+                  className="flex items-center space-x-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Getting Started</span>
+                </button>
               </div>
 
               {/* Stats Grid */}
@@ -256,7 +265,15 @@ export function Dashboard() {
                       <div className="text-gray-400 text-center py-8">Loading activity...</div>
                     ) : stats.totalReports === 0 ? (
                       <div className="text-gray-400 text-center py-8">
-                        No activity yet. Configure a project to start receiving reports.
+                        <div className="space-y-3">
+                          <p>No activity yet. Configure a project to start receiving reports.</p>
+                          <button
+                            onClick={() => setShowGettingStarted(true)}
+                            className="text-blue-400 hover:text-blue-300 transition-colors text-sm underline"
+                          >
+                            Need help getting started?
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       [
@@ -325,6 +342,11 @@ export function Dashboard() {
           )}
         </div>
       </div>
+      
+      {/* Getting Started Guide Modal */}
+      {showGettingStarted && (
+        <GettingStartedGuide onClose={() => setShowGettingStarted(false)} />
+      )}
     </div>
   );
 }
